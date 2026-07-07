@@ -1,15 +1,16 @@
 // spec: specs/auth/login.md
 // seed: seed.spec.ts
 
-import { test } from '../../fixtures/base';
-import { fakeUser } from '../../data/fake';
+import { test } from '@fixtures/base';
+import { fakeUser } from 'data/fake';
+
+test.beforeEach(async ({ loginPage }) => {
+  await loginPage.goto();
+});
 
 test.describe('Authentication Errors', () => {
   test('Login with wrong password', async ({ loginPage }) => {
     const user = fakeUser();
-    // 1. Navigate to /login
-    await loginPage.goto();
-
     // 2. Fill email with a valid registered email
     await loginPage.login(process.env.CC_EMAIL ?? '', user.password);
     // Expected: pink error banner appears, user stays on login page

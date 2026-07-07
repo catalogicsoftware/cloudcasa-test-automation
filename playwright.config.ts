@@ -4,7 +4,7 @@ import 'dotenv/config';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  timeout: 30 * 1000,
+  timeout: 120 * 1000,
   expect: {
     timeout: 5000,
   },

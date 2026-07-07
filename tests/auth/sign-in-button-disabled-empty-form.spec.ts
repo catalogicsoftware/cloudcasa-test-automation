@@ -3,11 +3,12 @@
 
 import { test, expect } from '../../fixtures/base';
 
+test.beforeEach(async ({ loginPage }) => {
+  await loginPage.goto();
+});
+
 test.describe('Field Validation', () => {
   test('Sign In button is disabled after submitting empty form', async ({ loginPage }) => {
-    // 1. Navigate to /login
-    await loginPage.goto();
-
     // 2. Leave both fields empty and click Sign In
     await loginPage.signInButton.click();
 

@@ -6,10 +6,13 @@
     "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@pages/*": ["pages/*"],
-      "@fixtures/*": ["fixtures/*"]
+      "@fixtures/*": ["fixtures/*"],
+      "@utils/*": ["utils/*"],
+      "@page-fatory/*": ["page-factory/*"]
     }
   },
   "include": ["**/*.ts"],

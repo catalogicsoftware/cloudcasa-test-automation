@@ -4,12 +4,13 @@
 import { test } from '../../fixtures/base';
 import { fakeUser } from '../../data/fake';
 
+test.beforeEach(async ({ loginPage }) => {
+  await loginPage.goto();
+});
+
 test.describe('Authentication Errors', () => {
   test('Login with non-existent email', async ({ loginPage }) => {
     const user = fakeUser();
-
-    // 1. Navigate to /login
-    await loginPage.goto();
 
     // 2. Fill email with a randomly generated non-existent address
     await loginPage.emailInput.fill(user.email);

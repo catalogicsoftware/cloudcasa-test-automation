@@ -3,11 +3,12 @@
 
 import { test, expect } from '../../fixtures/base';
 
+test.beforeEach(async ({ loginPage }) => {
+  await loginPage.goto();
+});
+
 test.describe('Field Validation', () => {
   test('Sign In button is disabled after submitting with email only', async ({ loginPage }) => {
-    // 1. Navigate to /login
-    await loginPage.goto();
-
     // 2. Fill only the email field
     await loginPage.emailInput.fill('test@example.com');
 

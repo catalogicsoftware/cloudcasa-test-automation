@@ -3,11 +3,12 @@
 
 import { test } from '../../fixtures/base';
 
+test.beforeEach(async ({ loginPage }) => {
+  await loginPage.goto('/');
+});
+
 test.describe('Forgot Password Flow', () => {
   test('Go back to login form', async ({ loginPage }) => {
-    // 1. Navigate to /login
-    await loginPage.goto();
-
     // 2. Click "Forgot password"
     await loginPage.forgotPasswordButton.click();
 

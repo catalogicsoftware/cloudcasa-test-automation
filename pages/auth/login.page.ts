@@ -14,7 +14,11 @@ export class LoginPage extends BasePage {
     locator: '#btn-reset-pwd',
     name: 'Forgot Password',
   });
-  readonly goBackLink = new Link({ page: this.page, locator: '#btn-back-login', name: 'Go Back' });
+  readonly goBackLink = new Link({
+    page: this.page,
+    locator: '#btn-back-login',
+    name: 'Go Back',
+  });
   readonly errorMessage = new Title({
     page: this.page,
     locator: '#error-message',
@@ -22,7 +26,7 @@ export class LoginPage extends BasePage {
   });
   readonly resetSuccessMessage = new Title({
     page: this.page,
-    locator: '#message-reset-success',
+    locator: '#success-message',
     name: 'Reset Success Message',
   });
   readonly signUpLink = new Link({ page: this.page, locator: '.text-center > a', name: 'Sign Up' });
@@ -31,16 +35,34 @@ export class LoginPage extends BasePage {
     super(page);
   }
 
-  async goto() {
-    await this.page.goto('/');
-    // Works for both cloud (/login) and on-prem (/dex/auth/local/login?state=...)
-    // The app redirects to whichever login page applies for the environment
+  async goto(url: string = '/'): Promise<void> {
+    // The login form is served by an Auth0-hosted widget that renders its
+    // markup before it has fetched this challenge and wired up its click
+    // handlers, so a click right after navigation can silently be a no-op.
+    const challengeResponse = this.page.waitForResponse(response =>
+      response.url().includes('/usernamepassword/challenge'),
+    );
+
+    await super.goto(url);
     await this.emailInput.getLocator().waitFor({ state: 'visible' });
+    await challengeResponse;
   }
 
   async login(email: string, password: string) {
-    await this.emailInput.fill(email);
-    await this.passwordInput.fill(password);
+    await this.emailInput.fill(email, { validateValue: true });
+    await this.passwordInput.fill(password, { validateValue: true });
     await this.signInButton.click();
+  }
+
+  async clickForgotPassword() {
+    await this.forgotPasswordButton.click();
+  }
+
+  async clickGoBackToLogin() {
+    await this.goBackLink.click();
+  }
+
+  async clickSignUp() {
+    await this.signUpLink.click();
   }
 }
