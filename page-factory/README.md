@@ -35,13 +35,28 @@ All methods accept an optional `{ locator }` override to target a different sele
 
 ## Component classes
 
-| Class      | `typeOf`    | Extra methods                                               |
-| ---------- | ----------- | ----------------------------------------------------------- |
-| `Button`   | `button`    | `hover()`, `doubleClick()`                                  |
-| `Input`    | `input`     | `fill(value, { validateValue? })`, `shouldHaveValue(value)` |
-| `Link`     | `link`      | —                                                           |
-| `ListItem` | `list-item` | —                                                           |
-| `Title`    | `title`     | —                                                           |
+| Class       | `typeOf`    | Extra methods                                                                                                                                                                                        |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`    | `button`    | `hover()`, `doubleClick()`                                                                                                                                                                           |
+| `Checkbox`  | `checkbox`  | `check()`, `uncheck()`                                                                                                                                                                               |
+| `Container` | `container` | —                                                                                                                                                                                                    |
+| `Dropdown`  | `dropdown`  | `selectOption(value, { validateValue? })`, `selectByText(text, { search?, keepOpen?, optionLocator? })`, `unselectByText(text)`, `shouldHaveSelected(text)`, `closeMenu()`, `shouldHaveValue(value)` |
+| `Input`     | `input`     | `fill(value, { validateValue? })`, `shouldHaveValue(value)`                                                                                                                                          |
+| `Link`      | `link`      | —                                                                                                                                                                                                    |
+| `ListItem`  | `list-item` | —                                                                                                                                                                                                    |
+| `Title`     | `title`     | —                                                                                                                                                                                                    |
+
+### `Dropdown`
+
+Built for CloudCasa's `app-input-select-filter` widget (a `mat-menu`-based multi-select whose options render in an overlay outside the trigger). The menu stays open after picking an option and ignores Escape — only its footer "close" button or a backdrop click dismisses it.
+
+- `selectByText(text)` — opens the menu, clicks the option (`button.mat-menu-item` containing the text), then closes the menu. Options: `search: true` filters via the menu's search field first (long/paginated lists), `keepOpen: true` skips closing (picking several values), `optionLocator` overrides the option selector for other widgets.
+- `unselectByText(text)` — clicks the "×" on the value's badge inside the trigger.
+- `shouldHaveSelected(text)` — asserts a badge with the value is shown in the trigger.
+- `closeMenu()` — closes the open menu via its "close" button.
+- `selectOption(value)` / `shouldHaveValue(value)` — for native `<select>` elements; `validateValue: true` adds the value check after selection.
+
+The trigger buttons carry no unique attributes — anchor them to the field's label wrapper, e.g. `.form-group:has(label[for*="roles"]) button.mat-menu-trigger`.
 
 ### `Input.fill(value, { validateValue })`
 

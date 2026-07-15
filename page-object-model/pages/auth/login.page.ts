@@ -1,9 +1,9 @@
 import { Page } from '@playwright/test';
 import { BasePage } from '../base.page';
-import { Button } from '../../page-factory/button';
-import { Input } from '../../page-factory/input';
-import { Link } from '../../page-factory/link';
-import { Title } from '../../page-factory/title';
+import { Button } from '../../../page-factory/button';
+import { Input } from '../../../page-factory/input';
+import { Link } from '../../../page-factory/link';
+import { Title } from '../../../page-factory/title';
 
 export class LoginPage extends BasePage {
   readonly emailInput = new Input({ page: this.page, locator: '#email', name: 'Email' });

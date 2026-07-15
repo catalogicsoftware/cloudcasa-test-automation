@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises';
+﻿import { readFile } from 'fs/promises';
 import { Page } from '@playwright/test';
 import { BasePage } from '../base.page';
 import { Input } from '@page-fatory/input';
@@ -8,57 +8,57 @@ import { extractPdfText } from '@utils/pdf';
 import { compareText, TextComparisonResult } from '@utils/text-compare';
 
 export class SignUpPage extends BasePage {
-  private readonly buisnessEmail = new Input({
+  readonly businessEmail = new Input({
     page: this.page,
     locator: '#email',
-    name: 'Busness Email',
+    name: 'Business Email',
   });
 
-  private readonly password = new Input({
+  readonly password = new Input({
     page: this.page,
     locator: '#password',
     name: 'Password',
   });
 
-  private readonly reEnterPassword = new Input({
+  readonly reEnterPassword = new Input({
     page: this.page,
     locator: '#confirmPassword',
     name: 'Re-enter password',
   });
 
-  private readonly firstName = new Input({
+  readonly firstName = new Input({
     page: this.page,
     locator: '#firstName',
     name: 'First Name',
   });
 
-  private readonly lastName = new Input({
+  readonly lastName = new Input({
     page: this.page,
     locator: '#lastName',
     name: 'Last Name',
   });
 
-  private readonly company = new Input({ page: this.page, locator: '#company', name: 'Company' });
+  readonly company = new Input({ page: this.page, locator: '#company', name: 'Company' });
 
-  private readonly jobTitle = new Input({
+  readonly jobTitle = new Input({
     page: this.page,
     locator: '#jobTitle',
     name: 'Job title',
   });
 
-  private readonly consentCheckbox = new Checkbox({
+  readonly consentCheckbox = new Checkbox({
     page: this.page,
     locator: '#consentGiven',
     name: 'Privacy Policy',
   });
 
-  private readonly masterServiceAgreement = new Link({
+  readonly masterServiceAgreement = new Link({
     page: this.page,
     locator: 'role=link[name="Master Service Agreement"]',
     name: 'Master Service Agreement',
   });
 
-  private readonly privacyPolicy = new Link({
+  readonly privacyPolicy = new Link({
     page: this.page,
     locator: 'role=link[name="Privacy Policy"]',
     name: 'Privacy Policy',
@@ -82,7 +82,7 @@ export class SignUpPage extends BasePage {
     company: string,
     jobTitle: string,
   ): Promise<void> {
-    await this.buisnessEmail.fill(businessEmail);
+    await this.businessEmail.fill(businessEmail);
     await this.password.fill(password);
     await this.reEnterPassword.fill(password);
     await this.firstName.fill(firstName);

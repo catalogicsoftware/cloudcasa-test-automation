@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "test": "playwright test",
+    "test:allure": "allure run --open -- playwright test",
+    "allure:watch": "allure watch allure-results --port 5252 --open",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
@@ -15,7 +17,7 @@
     "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.49.0",
     "@types/node": "^26.0.1",
-    "allure-commandline": "^2.43.0",
+    "allure": "^3.14.3",
     "allure-playwright": "^3.10.2",
     "diff": "^9.0.0",
     "dotenv": "^16.4.0",

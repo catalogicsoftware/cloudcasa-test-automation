@@ -9,8 +9,9 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@pages/*": ["pages/*"],
+      "@page-object-model/*": ["page-object-model/*"],
       "@fixtures/*": ["fixtures/*"],
+      "@data/*": ["data/*"],
       "@utils/*": ["utils/*"],
       "@page-fatory/*": ["page-factory/*"]
     }

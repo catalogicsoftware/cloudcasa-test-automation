@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { CcApiRoutes } from 'data/api-routes';
 
 export abstract class BasePage {
   constructor(protected readonly page: Page) {}
@@ -9,6 +10,10 @@ export abstract class BasePage {
 
   async waitForLoad() {
     await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  async waitForResponse(urlPart: string) {
+    await this.page.waitForResponse(response => response.url().includes(urlPart));
   }
 
   async reloadPage() {

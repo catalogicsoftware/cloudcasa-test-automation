@@ -1,8 +1,8 @@
 import { Page } from '@playwright/test';
 import { BasePage } from '../base.page';
-import { Button } from '../../page-factory/button';
-import { Input } from '../../page-factory/input';
-import { Title } from '../../page-factory/title';
+import { Button } from '../../../page-factory/button';
+import { Input } from '../../../page-factory/input';
+import { Title } from '../../../page-factory/title';
 
 // This is Auth0's hosted "Change Password" page (an auth0-lock widget served from
 // the tenant's custom domain), not part of the CloudCasa Angular app.
