@@ -1,3 +1,5 @@
+import { TestmailTag, testmailAddress } from '@data/testmail-tags';
+
 const RESET_EMAIL_SUBJECT = 'CloudCasa Password Change';
 const RESET_LINK_PATTERN = /href="(https:\/\/[^"]*\/lo\/reset\?ticket=[^"]*)"/;
 
@@ -76,7 +78,7 @@ function extractLink(email: TestmailEmail, linkPattern: RegExp): string {
 
 export async function getPasswordResetLink(afterTimestamp: number): Promise<string> {
   const email = await waitForEmail({
-    tag: tagFromEmail(process.env.RESET_PWD_EMAIL ?? ''),
+    tag: TestmailTag.RESET_PWD,
     subject: RESET_EMAIL_SUBJECT,
     afterTimestamp,
   });
@@ -86,7 +88,7 @@ export async function getPasswordResetLink(afterTimestamp: number): Promise<stri
 
 export async function getInvitation(
   afterTimestamp: number,
-  invitedEmail: string = process.env.INVITED_USER_EMAIL ?? '',
+  invitedEmail: string = testmailAddress(TestmailTag.INVITE_PENDING),
 ): Promise<Invitation> {
   const email = await waitForEmail({
     tag: tagFromEmail(invitedEmail),

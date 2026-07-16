@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { TestmailTag, testmailAddress } from './testmail-tags';
 import type { User as UserData, InvitedUser as InvitedUserData } from '../types/data/user';
 
 export class User implements UserData {
@@ -32,7 +33,7 @@ export const defaultUser = new User(
 // Receives the organization invitation email (testmail.app inbox). Has no
 // password until the invite is accepted and one is set during the test flow.
 export const invitedUser = new InvitedUser(
-  process.env.INVITED_USER_EMAIL ?? '',
+  testmailAddress(TestmailTag.INVITE_PENDING),
   '',
   'CC AQA Organization',
   'AQA',
@@ -44,7 +45,7 @@ export const invitedUser = new InvitedUser(
 // so tests that accept one need a unique testmail tag per run to stay repeatable.
 export const fakeInvitedUser = (): InvitedUser =>
   new InvitedUser(
-    `${process.env.TESTMAIL_NAMESPACE}.invited@inbox.testmail.app`,
+    testmailAddress(TestmailTag.INVITE_SIGNUP),
     // Suffix guarantees the upper/lower/digit/special mix the password policy wants.
     `${faker.internet.password({ length: 12, memorable: false })}aB1!`,
     'CC AQA Organization',
