@@ -4,6 +4,7 @@ import { BasePage } from '../base.page';
 import { Input } from '@page-fatory/input';
 import { Checkbox } from '@page-fatory/checkbox';
 import { Link } from '@page-fatory/link';
+import { Button } from '@page-fatory/button';
 import { extractPdfText } from '@utils/pdf';
 import { compareText, TextComparisonResult } from '@utils/text-compare';
 
@@ -52,6 +53,12 @@ export class SignUpPage extends BasePage {
     name: 'Privacy Policy',
   });
 
+  readonly signUpButton = new Button({
+    page: this.page,
+    locator: 'form button[type="submit"]',
+    name: 'Sign up',
+  });
+
   readonly masterServiceAgreement = new Link({
     page: this.page,
     locator: 'role=link[name="Master Service Agreement"]',
@@ -89,6 +96,18 @@ export class SignUpPage extends BasePage {
     await this.lastName.fill(lastName);
     await this.company.fill(company);
     await this.jobTitle.fill(jobTitle);
+  }
+
+  // Invited signup: email/first name/last name/company arrive prefilled and
+  // disabled via the invitation link's `prefillFields` payload, so only the
+  // passwords, job title and consent are editable. The form also contains a
+  // required reCAPTCHA which keeps the Sign up button disabled until solved.
+  async completeInvitedSignUp(password: string, jobTitle: string): Promise<void> {
+    await this.password.fill(password);
+    await this.reEnterPassword.fill(password);
+    await this.jobTitle.fill(jobTitle);
+    await this.checkPrivacyPolicy();
+    await this.signUpButton.click();
   }
 
   async checkPrivacyPolicy(): Promise<void> {

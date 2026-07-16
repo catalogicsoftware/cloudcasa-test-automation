@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import type { User as UserData, InvitedUser as InvitedUserData } from '../types/data/user';
 
 export class User implements UserData {
@@ -38,3 +39,16 @@ export const invitedUser = new InvitedUser(
   'Invited',
   'ADMIN',
 );
+
+// Accepting an invitation is irreversible — the user joins the organization —
+// so tests that accept one need a unique testmail tag per run to stay repeatable.
+export const fakeInvitedUser = (): InvitedUser =>
+  new InvitedUser(
+    `${process.env.TESTMAIL_NAMESPACE}.invited@inbox.testmail.app`,
+    // Suffix guarantees the upper/lower/digit/special mix the password policy wants.
+    `${faker.internet.password({ length: 12, memorable: false })}aB1!`,
+    'CC AQA Organization',
+    'AQA',
+    'Invited',
+    'ADMIN',
+  );

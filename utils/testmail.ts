@@ -84,9 +84,12 @@ export async function getPasswordResetLink(afterTimestamp: number): Promise<stri
   return extractLink(email, RESET_LINK_PATTERN);
 }
 
-export async function getInvitation(afterTimestamp: number): Promise<Invitation> {
+export async function getInvitation(
+  afterTimestamp: number,
+  invitedEmail: string = process.env.INVITED_USER_EMAIL ?? '',
+): Promise<Invitation> {
   const email = await waitForEmail({
-    tag: tagFromEmail(process.env.INVITED_USER_EMAIL ?? ''),
+    tag: tagFromEmail(invitedEmail),
     subject: INVITATION_EMAIL_SUBJECT,
     afterTimestamp,
   });

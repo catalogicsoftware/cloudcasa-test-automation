@@ -8,6 +8,7 @@ test.describe('Invite organization', () => {
     configurationPage,
     usersConfigurationPage,
     invitedUser,
+    cancelInvitationAfterTest,
   }) => {
     await dashboardPage.userHelpModal.closeModal();
 
