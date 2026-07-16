@@ -1,9 +1,13 @@
 import { test as base } from './base';
 import { Page } from '@playwright/test';
+import { UsersApi } from '@utils/api/users.api';
 
 type AuthFixtures = {
   loggedInPage: Page;
   cancelInvitationAfterTest: void;
+  adminJwt: string;
+  usersApi: UsersApi;
+  cleanRegisteredUserState: void;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -19,6 +23,40 @@ export const test = base.extend<AuthFixtures>({
   cancelInvitationAfterTest: async ({ ccApi, invitedUser }, use) => {
     await use();
     await ccApi.orgInvites.cancelByEmail(invitedUser.email);
+  },
+
+  // The /users resource rejects the static API key, so cleanup needs the JWT
+  // the admin SPA sends. The dashboard is already loaded when loggedInPage
+  // resolves, so a reload is the cheapest way to observe a fresh API request
+  // and read its Authorization header.
+  adminJwt: async ({ loggedInPage }, use) => {
+    const [apiCall] = await Promise.all([
+      loggedInPage.waitForRequest(
+        request =>
+          request.url().includes('/api/v1/') &&
+          (request.headers()['authorization'] ?? '').startsWith('Bearer '),
+      ),
+      loggedInPage.reload(),
+    ]);
+    await use(apiCall.headers()['authorization'].replace(/^Bearer /, ''));
+  },
+
+  usersApi: async ({ request, adminJwt }, use) => {
+    await use(new UsersApi(request, adminJwt));
+  },
+
+  // Removes the registered user from the organization and cancels any pending
+  // invitation — BOTH before the test (self-healing when a previous run died
+  // between acceptance and teardown) and after it. Each half is a no-op when
+  // there is nothing to clean.
+  cleanRegisteredUserState: async ({ usersApi, ccApi, registeredUser }, use) => {
+    const clean = async () => {
+      await usersApi.removeByEmail(registeredUser.email);
+      await ccApi.orgInvites.cancelByEmail(registeredUser.email);
+    };
+    await clean();
+    await use();
+    await clean();
   },
 });
 

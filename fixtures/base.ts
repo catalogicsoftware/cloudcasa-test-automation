@@ -4,7 +4,7 @@ import { DashboardPage } from '@page-object-model/pages/dashboard.page';
 import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.page';
 import { SignUpPage } from '@page-object-model/pages/auth/sign-up.page';
 import { ConfigurationPage } from '@page-object-model/pages/configuration/configuration.page';
-import { User, InvitedUser, defaultUser, invitedUser } from '@data/user';
+import { User, InvitedUser, defaultUser, invitedUser, registeredUser } from '@data/user';
 import { UsersConfigurationPage } from '@page-object-model/pages/configuration/user-configuration.page';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
@@ -19,6 +19,7 @@ type Pages = {
   signUpPage: SignUpPage;
   adminUser: User;
   invitedUser: InvitedUser;
+  registeredUser: InvitedUser;
   ccApi: CcApi;
 };
 
@@ -32,6 +33,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   invitedUser: async ({}, use) => {
     await use(invitedUser);
+  },
+  registeredUser: async ({}, use) => {
+    await use(registeredUser);
   },
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));

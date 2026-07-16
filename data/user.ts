@@ -53,3 +53,18 @@ export const fakeInvitedUser = (): InvitedUser =>
     'Invited',
     'ADMIN',
   );
+
+// Static staging user, manually registered ONCE with this exact testmail
+// address and approved for staging access (see docs/superpowers/specs/
+// 2026-07-16-invite-registered-user-design.md). Owned exclusively by the
+// invite-registered-user test: it is invited into CC AQA Organization and
+// removed again by the cleanRegisteredUserState fixture, returning to its
+// own default organization.
+export const registeredUser = new InvitedUser(
+  testmailAddress(TestmailTag.INVITE_REGISTERED),
+  process.env.REGISTERED_USER_PASSWORD ?? '',
+  'CC AQA Organization',
+  'AQA',
+  'Registered',
+  'ADMIN',
+);
