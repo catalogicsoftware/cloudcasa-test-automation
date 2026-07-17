@@ -26,6 +26,7 @@ export class Table extends Component {
    * header index always matches the cell index.
    */
   private async columnIndex(columnTitle: string): Promise<number> {
+    await this.headerTitles.first().waitFor();
     const titles = (await this.headerTitles.allInnerTexts()).map(title => title.trim());
     const index = titles.indexOf(columnTitle);
 
