@@ -44,6 +44,7 @@ All methods accept an optional `{ locator }` override to target a different sele
 | `Input`     | `input`     | `fill(value, { validateValue? })`, `shouldHaveValue(value)`                                                                                                                                          |
 | `Link`      | `link`      | —                                                                                                                                                                                                    |
 | `ListItem`  | `list-item` | —                                                                                                                                                                                                    |
+| `Table`     | `table`     | `getRow(text)`, `getCellValue(rowText, columnTitle)`, `shouldHaveCellValue(rowText, columnTitle, expected)`, `shouldHaveRow(text)`, `shouldNotHaveRow(text)`, `clickRowAction(rowText, actionName)`  |
 | `Title`     | `title`     | —                                                                                                                                                                                                    |
 
 ### `Dropdown`
@@ -57,6 +58,27 @@ Built for CloudCasa's `app-input-select-filter` widget (a `mat-menu`-based multi
 - `selectOption(value)` / `shouldHaveValue(value)` — for native `<select>` elements; `validateValue: true` adds the value check after selection.
 
 The trigger buttons carry no unique attributes — anchor them to the field's label wrapper, e.g. `.form-group:has(label[for*="roles"]) button.mat-menu-trigger`.
+
+### `Table`
+
+Built for CloudCasa's `table.table-cc` tables (e.g. Configuration → Users / Invitations). Cells are addressed by **row text × column header title**; the column index is resolved at call time from the visible headers, so hiding or reordering columns via the column selector does not break addressing.
+
+```ts
+const invitationsTable = new Table({ page, locator: 'app-users table', name: 'Invitations' });
+
+await invitationsTable.shouldHaveRow(user.email);
+await invitationsTable.shouldHaveCellValue(user.email, 'State', 'PENDING');
+await invitationsTable.clickRowAction(user.email, 'Resend');
+```
+
+- `getRow(text)` — row locator containing the text (no assertion; for composition).
+- `getCellValue(rowText, columnTitle)` — trimmed `innerText` of the cell at row × column.
+- `shouldHaveCellValue(rowText, columnTitle, expected)` — `toContainText` assertion on that cell; `expected` may be a string or RegExp.
+- `shouldHaveRow(text)` / `shouldNotHaveRow(text)` — row is visible / absent (the latter uses `toHaveCount(0)`, so it passes on an empty table).
+- `clickRowAction(rowText, actionName)` — hovers the row (action buttons are hover-revealed) and clicks the button with the text (`Resend`, `Cancel`, ...) inside `td.table__actions-wrapper`.
+- Unknown column title → throws an error listing the currently visible column titles.
+
+Filtering/search lives outside the `<table>` element and is a page-object concern, not part of `Table`.
 
 ### `Input.fill(value, { validateValue })`
 
