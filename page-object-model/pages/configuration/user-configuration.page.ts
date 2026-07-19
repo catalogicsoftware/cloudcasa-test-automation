@@ -3,6 +3,7 @@ import { BasePage } from '../base.page';
 import { Container } from '@page-fatory/container';
 import { Link } from '@page-fatory/link';
 import { Button } from '@page-fatory/button';
+import { Table } from '@page-fatory/table';
 import { InviteUserDrawer } from '@page-object-model/components/drawers/user-invitation-drawer.components';
 
 export class UsersConfigurationPage extends BasePage {
@@ -18,6 +19,11 @@ export class UsersConfigurationPage extends BasePage {
     name: 'Invitations',
   });
   readonly inviteUserDrawer = new InviteUserDrawer(this.page);
+  readonly invitationsTable = new Table({
+    page: this.page,
+    locator: 'app-invitations table',
+    name: 'Invitations',
+  });
 
   constructor(page: Page) {
     super(page);
@@ -27,6 +33,16 @@ export class UsersConfigurationPage extends BasePage {
     await test.step('Users Configuration page should be opened', async () => {
       await expect(this.page).toHaveURL(/\/configuration\/users/);
       await this.usersContainer.shouldBeVisible();
+    });
+  }
+
+  async openInvitationsTab(): Promise<void> {
+    await test.step('Open the Invitations tab', async () => {
+      await this.invitationsTab
+        .getLocator()
+        .click({ timeout: 10000 })
+        .catch(() => {});
+      await expect(this.page).toHaveURL(/\/configuration\/users\/invitations/);
     });
   }
 }

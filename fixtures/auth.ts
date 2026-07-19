@@ -1,10 +1,12 @@
 import { test as base } from './base';
 import { Page } from '@playwright/test';
 import { UsersApi } from '@utils/api/users.api';
+import { TestmailTag, testmailAddress } from '@data/testmail-tags';
 
 type AuthFixtures = {
   loggedInPage: Page;
   cancelInvitationAfterTest: void;
+  cancelSignupInvitationAfterTest: void;
   adminJwt: string;
   usersApi: UsersApi;
   cleanRegisteredUserState: void;
@@ -23,6 +25,14 @@ export const test = base.extend<AuthFixtures>({
   cancelInvitationAfterTest: async ({ ccApi, invitedUser }, use) => {
     await use();
     await ccApi.orgInvites.cancelByEmail(invitedUser.email);
+  },
+
+  // Same cleanup for the signup-flow invitee (fixed invite-signup address):
+  // it never completes signup — reCAPTCHA blocks it — so its invitation
+  // stays PENDING and would shadow the next run's invitation email.
+  cancelSignupInvitationAfterTest: async ({ ccApi }, use) => {
+    await use();
+    await ccApi.orgInvites.cancelByEmail(testmailAddress(TestmailTag.INVITE_SIGNUP));
   },
 
   // The /users resource rejects the static API key, so cleanup needs the JWT

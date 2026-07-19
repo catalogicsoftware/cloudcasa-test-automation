@@ -63,6 +63,13 @@ export abstract class Component {
     });
   }
 
+  async shouldBeDisabled(locatorProps: LocatorProps = {}): Promise<void> {
+    await test.step(`${this.typeOfUpper} "${this.componentName}" should be disabled`, async () => {
+      const locator = this.getLocator(locatorProps);
+      await expect(locator, { message: this.getErrorMessage(' is not disabled') }).toBeDisabled();
+    });
+  }
+
   async click(locatorProps: LocatorProps = {}): Promise<void> {
     await test.step(`Click on ${this.typeOf} "${this.componentName}"`, async () => {
       const locator = this.getLocator(locatorProps);

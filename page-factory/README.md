@@ -30,6 +30,8 @@ new Button({ page, locator: '#submit', name: 'Sign In' });
 | `click()`              | `Click on <type> "<name>"`                      |
 | `shouldBeVisible()`    | `<Type> "<name>" should be visible on the page` |
 | `shouldHaveText(text)` | `<Type> "<name>" should have text "<text>"`     |
+| `shouldBeEnabled()`    | `<Type> "<name>" should be enabled`             |
+| `shouldBeDisabled()`   | `<Type> "<name>" should be disabled`            |
 
 All methods accept an optional `{ locator }` override to target a different selector at call time.
 

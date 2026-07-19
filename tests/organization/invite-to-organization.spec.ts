@@ -27,6 +27,15 @@ test.describe('Invite organization', () => {
     const invitedAt = Date.now();
     await usersConfigurationPage.inviteUserDrawer.sendInvitation(invitedUser);
 
+    // The sent invitation appears on the Invitations tab as PENDING
+    await usersConfigurationPage.openInvitationsTab();
+    await usersConfigurationPage.invitationsTable.shouldHaveRow(invitedUser.email);
+    await usersConfigurationPage.invitationsTable.shouldHaveCellValue(
+      invitedUser.email,
+      'State',
+      'PENDING',
+    );
+
     const invitation = await getInvitation(invitedAt);
     expect(invitation.organization).toBe(invitedUser.organization);
   });

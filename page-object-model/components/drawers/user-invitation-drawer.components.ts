@@ -81,6 +81,14 @@ export class InviteUserDrawer {
     }
     await this.selectRole(user.role);
     await this.send.shouldBeEnabled();
+
+    const invitePosted = this.page.waitForResponse(
+      response => response.url().includes('/orginvites') && response.request().method() === 'POST',
+    );
     await this.send.click();
+    const response = await invitePosted;
+    if (!response.ok()) {
+      throw new Error(`Invitation POST failed: ${response.status()} ${await response.text()}`);
+    }
   }
 }

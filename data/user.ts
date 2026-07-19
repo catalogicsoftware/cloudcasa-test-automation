@@ -49,8 +49,8 @@ export const fakeInvitedUser = (): InvitedUser =>
     // Suffix guarantees the upper/lower/digit/special mix the password policy wants.
     `${faker.internet.password({ length: 12, memorable: false })}aB1!`,
     'CC AQA Organization',
-    'AQA',
-    'Invited',
+    faker.person.firstName(),
+    faker.person.lastName(),
     'ADMIN',
   );
 
