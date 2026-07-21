@@ -2,7 +2,6 @@
 import { Page } from '@playwright/test';
 import { BasePage } from '../base.page';
 import { Input } from '@page-fatory/input';
-import { Checkbox } from '@page-fatory/checkbox';
 import { Link } from '@page-fatory/link';
 import { Button } from '@page-fatory/button';
 import { extractPdfText } from '@utils/pdf';
@@ -47,12 +46,6 @@ export class SignUpPage extends BasePage {
     name: 'Job title',
   });
 
-  readonly consentCheckbox = new Checkbox({
-    page: this.page,
-    locator: '#consentGiven',
-    name: 'Privacy Policy',
-  });
-
   readonly signUpButton = new Button({
     page: this.page,
     locator: 'form button[type="submit"]',
@@ -63,12 +56,6 @@ export class SignUpPage extends BasePage {
     page: this.page,
     locator: 'role=link[name="Master Service Agreement"]',
     name: 'Master Service Agreement',
-  });
-
-  readonly privacyPolicy = new Link({
-    page: this.page,
-    locator: 'role=link[name="Privacy Policy"]',
-    name: 'Privacy Policy',
   });
 
   constructor(page: Page) {
@@ -98,32 +85,8 @@ export class SignUpPage extends BasePage {
     await this.jobTitle.fill(jobTitle);
   }
 
-  // Invited signup: email/first name/last name/company arrive prefilled and
-  // disabled via the invitation link's `prefillFields` payload, so only the
-  // passwords, job title and consent are editable. The form also contains a
-  // required reCAPTCHA which keeps the Sign up button disabled until solved.
-  async completeInvitedSignUp(password: string, jobTitle: string): Promise<void> {
-    await this.password.fill(password);
-    await this.reEnterPassword.fill(password);
-    await this.jobTitle.fill(jobTitle);
-    await this.checkPrivacyPolicy();
-    await this.signUpButton.click();
-  }
-
-  async checkPrivacyPolicy(): Promise<void> {
-    await this.consentCheckbox.check();
-  }
-
-  async uncheckPrivacyPolicy(): Promise<void> {
-    await this.consentCheckbox.check();
-  }
-
   async openMasterServiceAgreement(): Promise<void> {
     await this.masterServiceAgreement.click();
-  }
-
-  async openPrivacyPolicy(): Promise<void> {
-    await this.privacyPolicy.click();
   }
 
   async verifyMasterServiceAgreement(expectedPdfPath: string): Promise<TextComparisonResult> {
@@ -143,32 +106,6 @@ export class SignUpPage extends BasePage {
       extractPdfText(publishedPdfBuffer),
       extractPdfText(expectedPdfBuffer),
     ]);
-
-    return compareText(expectedText, publishedText);
-  }
-
-  async verifyPrivacyPolicy(expectedFilePath: string): Promise<TextComparisonResult> {
-    const previousUrl = this.page.url();
-    const popupPromise = this.page
-      .context()
-      .waitForEvent('page', { timeout: 5000 })
-      .catch(() => null);
-
-    await this.privacyPolicy.click();
-    const popup = await popupPromise;
-    const privacyPolicyPage = popup ?? this.page;
-    await privacyPolicyPage.waitForLoadState('domcontentloaded');
-
-    const [publishedText, expectedText] = await Promise.all([
-      privacyPolicyPage.locator('body').innerText(),
-      readFile(expectedFilePath, 'utf-8'),
-    ]);
-
-    if (popup) {
-      await popup.close();
-    } else {
-      await this.page.goto(previousUrl, { waitUntil: 'domcontentloaded' });
-    }
 
     return compareText(expectedText, publishedText);
   }

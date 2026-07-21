@@ -1,4 +1,5 @@
 import { CcApiRoutes } from '@data/api-routes';
+import { assertResponseOk } from '@utils/generic';
 import { BaseApi } from './base.api';
 import type {
   CreateOrgInviteRequest,
@@ -8,7 +9,8 @@ import type {
 import type { InvitedUser } from '../../types/data/user';
 
 export class OrgInvitesApi extends BaseApi {
-  async findByEmail(email: string): Promise<OrgInvite | undefined> {
+  /** All pending/stale invites for the email, newest first — there can be more than one if a prior run's cleanup didn't run. */
+  async findAllByEmail(email: string): Promise<OrgInvite[]> {
     const response = await this.request.get(this.url(CcApiRoutes.ORG_INVITES), {
       headers: this.headers,
       params: {
@@ -16,11 +18,13 @@ export class OrgInvitesApi extends BaseApi {
         sort: '-_created',
       },
     });
-    if (!response.ok()) {
-      throw new Error(`GET orginvites failed: ${response.status()} ${await response.text()}`);
-    }
+    await assertResponseOk(response, 'GET orginvites');
     const body = (await response.json()) as OrgInvitesListResponse;
-    return body._items[0];
+    return body._items;
+  }
+
+  async findByEmail(email: string): Promise<OrgInvite | undefined> {
+    return (await this.findAllByEmail(email))[0];
   }
 
   async create(user: InvitedUser, roleIds: string[], expiresInDays = 7): Promise<void> {
@@ -35,9 +39,7 @@ export class OrgInvitesApi extends BaseApi {
       headers: this.headers,
       data,
     });
-    if (!response.ok()) {
-      throw new Error(`POST orginvites failed: ${response.status()} ${await response.text()}`);
-    }
+    await assertResponseOk(response, 'POST orginvites');
   }
 
   async cancel(invite: OrgInvite): Promise<void> {
@@ -48,20 +50,19 @@ export class OrgInvitesApi extends BaseApi {
         headers: { ...this.headers, 'If-Match': invite._etag },
       },
     );
-    if (!response.ok()) {
-      throw new Error(
-        `DELETE orginvites/${invite._id} failed: ${response.status()} ${await response.text()}`,
-      );
-    }
+    await assertResponseOk(response, `DELETE orginvites/${invite._id}`);
   }
 
-  /** Cancels the invitation for the given email if one exists. Returns true when something was deleted. */
+  /**
+   * Cancels EVERY pending/stale invitation for the given email, not just the newest —
+   * a crashed prior run can leave more than one, and a stale duplicate row is enough to
+   * break Table assertions that match rows by email. Returns true when anything was deleted.
+   */
   async cancelByEmail(email: string): Promise<boolean> {
-    const invite = await this.findByEmail(email);
-    if (!invite) {
-      return false;
+    const invites = await this.findAllByEmail(email);
+    for (const invite of invites) {
+      await this.cancel(invite);
     }
-    await this.cancel(invite);
-    return true;
+    return invites.length > 0;
   }
 }

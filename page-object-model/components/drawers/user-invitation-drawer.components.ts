@@ -1,9 +1,15 @@
 import { Page } from '@playwright/test';
+import { CcApiRoutes } from '@data/api-routes';
 import { Container } from '@page-fatory/container';
 import { Input } from '@page-fatory/input';
 import { Dropdown } from '@page-fatory/dropdown';
 import { Button } from '@page-fatory/button';
 import type { InvitedUser } from '../../../types/data/user';
+
+// Exact pathname match (not a substring check) so this can't accidentally
+// resolve on an unrelated request that merely contains "/orginvites", e.g. a
+// sibling validation endpoint.
+const ORG_INVITES_PATH = `/${CcApiRoutes.ORG_INVITES}`;
 
 export class InviteUserDrawer {
   readonly createInvitation: Container;
@@ -81,14 +87,8 @@ export class InviteUserDrawer {
     }
     await this.selectRole(user.role);
     await this.send.shouldBeEnabled();
-
-    const invitePosted = this.page.waitForResponse(
-      response => response.url().includes('/orginvites') && response.request().method() === 'POST',
-    );
-    await this.send.click();
-    const response = await invitePosted;
-    if (!response.ok()) {
-      throw new Error(`Invitation POST failed: ${response.status()} ${await response.text()}`);
-    }
+    await this.send.clickAndWaitForResponse(url => new URL(url).pathname === ORG_INVITES_PATH, {
+      method: 'POST',
+    });
   }
 }

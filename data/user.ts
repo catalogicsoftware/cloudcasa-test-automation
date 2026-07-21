@@ -41,8 +41,11 @@ export const invitedUser = new InvitedUser(
   'ADMIN',
 );
 
-// Accepting an invitation is irreversible — the user joins the organization —
-// so tests that accept one need a unique testmail tag per run to stay repeatable.
+// The email is a FIXED testmail address (tag INVITE_SIGNUP) — not unique per
+// call, same as `invitedUser` above. Repeatability across runs comes from
+// cancelSignupInvitationAfterTest cleaning up both before and after the test
+// (fixtures/auth.ts), not from the address itself; only the name/password are
+// randomized here, so two concurrent runs can still collide on the address.
 export const fakeInvitedUser = (): InvitedUser =>
   new InvitedUser(
     testmailAddress(TestmailTag.INVITE_SIGNUP),

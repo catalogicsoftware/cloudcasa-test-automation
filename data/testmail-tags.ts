@@ -12,7 +12,7 @@ export const TestmailTag = {
   RESET_PWD: 'test',
   /** Invitee that never accepts (tests/organization/invite-to-organization). */
   INVITE_PENDING: 'invite-pending',
-  /** Unregistered invitee for the signup flow (tests/organization/login-invited-user). */
+  /** Unregistered invitee for the signup flow (tests/organization/invitation-link-prefills-signup). */
   INVITE_SIGNUP: 'invite-signup',
   /**
    * Static registered staging user (tests/organization/invite-registered-user).

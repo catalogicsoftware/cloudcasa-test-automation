@@ -1,4 +1,5 @@
 import { APIRequestContext } from '@playwright/test';
+import { assertResponseOk } from '@utils/generic';
 
 const DEFAULT_API_URL = 'https://api.cloudcasa.io/api/v1';
 
@@ -45,9 +46,7 @@ export abstract class BaseApi {
   // the etag isn't already at hand from a list response.
   protected async fetchEtag(resourceRoute: string): Promise<string> {
     const response = await this.request.get(this.url(resourceRoute), { headers: this.headers });
-    if (!response.ok()) {
-      throw new Error(`GET ${resourceRoute} failed: ${response.status()} ${await response.text()}`);
-    }
+    await assertResponseOk(response, `GET ${resourceRoute}`);
     const body = (await response.json()) as { _etag?: string };
     if (!body._etag) {
       throw new Error(`Resource ${resourceRoute} has no _etag field`);

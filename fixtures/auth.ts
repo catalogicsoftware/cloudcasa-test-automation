@@ -20,19 +20,27 @@ export const test = base.extend<AuthFixtures>({
     await use(page);
   },
 
-  // Cancels the pending invitation for `invitedUser.email` via API after the test,
-  // so every run starts from a clean invitations list.
+  // invitedUser/the signup-flow invitee use a FIXED testmail address (one tag
+  // = one owning test file), so nothing makes a run's invite unique — repeatability
+  // relies entirely on cleanup running. Cleaning both before and after (like
+  // cleanRegisteredUserState below) makes this self-healing: if a prior run
+  // crashed/timed out before its own "after" cleanup ran, the next run's
+  // "before" pass removes the stale invite instead of leaving a duplicate
+  // PENDING row that would break Table row-matching assertions.
   cancelInvitationAfterTest: async ({ ccApi, invitedUser }, use) => {
+    await ccApi.orgInvites.cancelByEmail(invitedUser.email);
     await use();
     await ccApi.orgInvites.cancelByEmail(invitedUser.email);
   },
 
-  // Same cleanup for the signup-flow invitee (fixed invite-signup address):
-  // it never completes signup — reCAPTCHA blocks it — so its invitation
-  // stays PENDING and would shadow the next run's invitation email.
+  // Same self-healing cleanup for the signup-flow invitee (fixed invite-signup
+  // address): it never completes signup — reCAPTCHA blocks it — so its
+  // invitation stays PENDING and would shadow the next run's invitation email.
   cancelSignupInvitationAfterTest: async ({ ccApi }, use) => {
+    const clean = () => ccApi.orgInvites.cancelByEmail(testmailAddress(TestmailTag.INVITE_SIGNUP));
+    await clean();
     await use();
-    await ccApi.orgInvites.cancelByEmail(testmailAddress(TestmailTag.INVITE_SIGNUP));
+    await clean();
   },
 
   // The /users resource rejects the static API key, so cleanup needs the JWT

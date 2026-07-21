@@ -44,8 +44,21 @@ export abstract class BaseDrawer {
     await this.container.shouldBeVisible();
   }
 
-  async submitForm(): Promise<void> {
-    await this.submit.click();
+  /**
+   * A bare click can silently abort the drawer's write if the app navigates
+   * away before the request completes. Pass the endpoint the submit is
+   * expected to hit (as a substring or predicate) so the click waits for that
+   * response instead — see InviteUserDrawer.sendInvitation for the pattern.
+   */
+  async submitForm(
+    responseUrlPredicate?: string | ((url: string) => boolean),
+    method?: string,
+  ): Promise<void> {
+    if (responseUrlPredicate) {
+      await this.submit.clickAndWaitForResponse(responseUrlPredicate, { method });
+    } else {
+      await this.submit.click();
+    }
   }
 
   async close(): Promise<void> {

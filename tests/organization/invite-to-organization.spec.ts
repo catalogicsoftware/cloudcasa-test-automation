@@ -1,3 +1,5 @@
+// spec: specs/configuration/user-management.md (TC-USR-002)
+// seed: seed.spec.ts
 import { test, expect } from '@fixtures/auth';
 import { getInvitation } from '@utils/testmail';
 

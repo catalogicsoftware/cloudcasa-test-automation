@@ -37,12 +37,6 @@ export class UsersConfigurationPage extends BasePage {
   }
 
   async openInvitationsTab(): Promise<void> {
-    await test.step('Open the Invitations tab', async () => {
-      await this.invitationsTab
-        .getLocator()
-        .click({ timeout: 10000 })
-        .catch(() => {});
-      await expect(this.page).toHaveURL(/\/configuration\/users\/invitations/);
-    });
+    await this.invitationsTab.clickAndWaitForUrl(/\/configuration\/users\/invitations/);
   }
 }

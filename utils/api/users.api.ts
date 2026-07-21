@@ -1,5 +1,6 @@
 import { APIRequestContext } from '@playwright/test';
 import { CcApiRoutes } from '@data/api-routes';
+import { assertResponseOk } from '@utils/generic';
 import { BaseApi, apiHeaders } from './base.api';
 import type { CcUser, UsersListResponse } from '../../types/api/users';
 
@@ -23,9 +24,7 @@ export class UsersApi extends BaseApi {
       headers: this.headers,
       params: { where: JSON.stringify({ email }) },
     });
-    if (!response.ok()) {
-      throw new Error(`GET users failed: ${response.status()} ${await response.text()}`);
-    }
+    await assertResponseOk(response, 'GET users');
     const body = (await response.json()) as UsersListResponse;
     return body._items[0];
   }
@@ -35,11 +34,7 @@ export class UsersApi extends BaseApi {
       // Eve REST API rejects DELETE without the resource's current etag.
       headers: { ...this.headers, 'If-Match': user._etag },
     });
-    if (!response.ok()) {
-      throw new Error(
-        `DELETE users/${user._id} failed: ${response.status()} ${await response.text()}`,
-      );
-    }
+    await assertResponseOk(response, `DELETE users/${user._id}`);
   }
 
   /** Removes the user from the organization if present. Returns true when something was deleted. */

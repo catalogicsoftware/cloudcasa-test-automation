@@ -76,4 +76,29 @@ export abstract class Component {
       await locator.click();
     });
   }
+
+  /**
+   * Some SPA routes re-render the clicked element as "active" mid-click,
+   * detaching it before Playwright's actionability retry resolves and
+   * hanging the click indefinitely. The URL change is the real signal that
+   * navigation succeeded, so a click that times out but still lands on the
+   * right URL isn't a failure — only a genuine click error (element never
+   * found, strict-mode violation, ...) should still fail fast.
+   */
+  async clickAndWaitForUrl(
+    urlPattern: string | RegExp,
+    locatorProps: LocatorProps = {},
+  ): Promise<void> {
+    await test.step(`Click on ${this.typeOf} "${this.componentName}" and wait for URL to match "${urlPattern}"`, async () => {
+      const locator = this.getLocator(locatorProps);
+      await locator.click({ timeout: 10000 }).catch(error => {
+        if (!/Timeout/i.test(error.message)) {
+          throw error;
+        }
+      });
+      await expect(this.page, {
+        message: this.getErrorMessage(`did not navigate to a URL matching "${urlPattern}"`),
+      }).toHaveURL(urlPattern);
+    });
+  }
 }
