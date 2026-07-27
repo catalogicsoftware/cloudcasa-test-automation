@@ -32,13 +32,13 @@ pipeline {
     }
 
     environment {
-        // --- Nexus report upload (replace with real values) ---
-        // Base URL of the Nexus instance, no trailing slash, e.g.
-        // 'https://nexus.example.com'. While it still contains REPLACE-ME the
-        // upload step below is skipped, so the pipeline works before Nexus is wired.
+        // --- Nexus report upload ---
+        // Base URL of the Nexus instance, no trailing slash. Reset this to a
+        // REPLACE-ME placeholder to skip the upload step below and fall back to
+        // archiving on the controller (see the `post` block).
         NEXUS_URL = 'https://cc-nexus.ad.catalogic.us'
         // Name of the `raw (hosted)` repository created for reports.
-        NEXUS_REPORTS_REPO = 'cloudcasa-reports'
+        NEXUS_REPORTS_REPO = 'cloudcasa-test-reports'
     }
 
     stages {

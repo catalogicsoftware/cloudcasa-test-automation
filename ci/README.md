@@ -63,10 +63,10 @@ source of truth for reports.
   (repo must use Content Disposition = Inline). Jenkins keeps only a **link** to
   it in the build description — no archived artifacts, no Allure results on the
   controller.
-- **Fallback during setup:** while `NEXUS_URL` is still the `REPLACE-ME`
-  placeholder, the pipeline archives `playwright-report/**` + `test-results/**`
-  on the controller instead, so nothing is lost before Nexus is wired. Setting a
-  real `NEXUS_URL` disables this fallback automatically.
+- **Fallback (inactive).** Nexus is wired — `NEXUS_URL` holds a real host, so
+  reports go straight to Nexus. The pipeline still falls back to archiving
+  `playwright-report/**` + `test-results/**` on the controller if `NEXUS_URL` is
+  ever reset to a `REPLACE-ME` placeholder, so nothing is lost mid-reconfiguration.
 
 > **Allure is local-only.** `playwright.config.ts` enables the `allure-playwright`
 > reporter only when `process.env.CI` is unset, so `npm test` on a developer
@@ -82,24 +82,26 @@ The `post` step uploads `playwright-report/` as an **unpacked tree** (one `curl`
 PUT per file) to a Nexus `raw (hosted)` repo, so `index.html` opens in the
 browser. Final URL: `<NEXUS_URL>/repository/<repo>/<job>/<build>/index.html`.
 
-**Create the repo** (Nexus UI → _Settings → Repositories → Create repository →
-`raw (hosted)`_):
+**Current wiring** (set in the `environment` block of the `Jenkinsfile`):
+
+| Setting              | Value                              |
+| -------------------- | ---------------------------------- |
+| `NEXUS_URL`          | `https://cc-nexus.ad.catalogic.us` |
+| `NEXUS_REPORTS_REPO` | `cloudcasa-test-reports`           |
+
+**Repo settings** (Nexus UI → _Settings → Repositories_), if it ever needs
+recreating as a `raw (hosted)` repository:
 
 | Setting             | Value                                                         |
 | ------------------- | ------------------------------------------------------------- |
-| Name                | `cloudcasa-reports`                                           |
+| Name                | `cloudcasa-test-reports`                                      |
 | Deployment policy   | **Allow redeploy**                                            |
 | Content Disposition | **Inline** ⚠️ (`Attachment` would download instead of render) |
 
-**Wire it in the `Jenkinsfile`:**
-
-- Set `NEXUS_URL` in the `environment` block to your Nexus base URL (no trailing
-  slash). While it still contains `REPLACE-ME`, the upload step is skipped — the
-  rest of the pipeline runs normally.
-- `NEXUS_REPORTS_REPO` defaults to `cloudcasa-reports`; change if you named it
-  differently.
-- Create a **username/password** (service account or token) Jenkins credential
-  with **write** access to the repo, ID `nexus-creds`.
+Also required: a **username/password** (service account or token) Jenkins
+credential with **write** access to the repo, ID `nexus-creds`. `NEXUS_URL`
+must have no trailing slash; while it contains `REPLACE-ME` the upload step is
+skipped and the rest of the pipeline runs normally.
 
 The controller node must have `curl` available (standard on most agents).
 
