@@ -11,3 +11,6 @@ specs
 allure-history.jsonl
 allure*
 docs
+
+# Local-only Jenkins-in-Docker stack (used to rehearse the pipeline locally)
+ci/local/
