@@ -11,7 +11,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html'], ['allure-playwright']],
+  // Allure is for local runs only. In CI we emit just the self-contained HTML
+  // report, which is uploaded to Nexus and rendered there (see ci/README.md) --
+  // Allure would only add cross-build trend history that needs controller
+  // storage, which the CI design deliberately avoids.
+  reporter: process.env.CI ? [['html']] : [['html'], ['allure-playwright']],
   use: {
     baseURL: process.env.BASE_URL || 'https://home.cloudcasa.io',
     ignoreHTTPSErrors: true,

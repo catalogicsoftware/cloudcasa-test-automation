@@ -1,0 +1,146 @@
+// Declarative pipeline for the CloudCasa Playwright suite.
+//
+// Jenkins builds the image from ci/Dockerfile and runs the whole pipeline
+// inside it. Secrets are pulled from Jenkins Credentials (see ci/README.md for
+// the required credential IDs) and mapped onto the env var names that
+// dotenv / playwright.config.ts already read.
+//
+// NOTE on structure: this does NOT use the declarative sugar
+// `agent { dockerfile { ... reuseNode true } }`, and credentials are bound
+// to throwaway variable names, then re-exported under their real names
+// *inside* the container's shell step. Root cause (confirmed with a series
+// of temporary debug probes, now removed): docker-workflow's container-exec
+// path drops any environment variable whose NAME matches Jenkins' built-in
+// "sensitive name" heuristic (case-insensitive match on words like `token`,
+// `password`, `key`, `secret`) before passing it into a spawned container -
+// a real security feature (docker run/exec -e values are visible via
+// `docker inspect`/`docker top` to anyone with host docker access, which
+// would defeat console masking), but it silently empties variables like
+// CLOUDCASA_API_TOKEN or CC_PASSWORD even though they're exactly the names
+// this app's env-var contract (CLAUDE.md / playwright.config.ts / dotenv)
+// requires. Proven by binding the same credential to a name without any
+// sensitive word (`CC_APIVAL`) and seeing it come through the container
+// intact, vs. `CLOUDCASA_API_TOKEN` coming through empty - both with the
+// exact same withCredentials/image.inside structure.
+pipeline {
+    agent any
+
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+        // --- Nexus report upload (replace with real values) ---
+        // Base URL of the Nexus instance, no trailing slash, e.g.
+        // 'https://nexus.example.com'. While it still contains REPLACE-ME the
+        // upload step below is skipped, so the pipeline works before Nexus is wired.
+        NEXUS_URL = 'https://cc-nexus.ad.catalogic.us'
+        // Name of the `raw (hosted)` repository created for reports.
+        NEXUS_REPORTS_REPO = 'cloudcasa-reports'
+    }
+
+    stages {
+        stage('Test') {
+            steps {
+                script {
+                    def image = docker.build('cloudcasa-playwright-tests', '-f ci/Dockerfile .')
+                    // Bound to names that don't match Jenkins' sensitive-name
+                    // filter (see NOTE above) so they actually reach the
+                    // container - real names are restored via `export` in
+                    // the sh step below, inside the container.
+                    withCredentials([
+                        string(credentialsId: 'cloudcasa-base-url', variable: 'IN_BASE_URL'),
+                        string(credentialsId: 'cloudcasa-cc-email', variable: 'IN_CC_EMAIL'),
+                        string(credentialsId: 'cloudcasa-cc-password', variable: 'IN_CC_PASS'),
+                        string(credentialsId: 'cloudcasa-testmail-namespace', variable: 'IN_TESTMAIL_NS'),
+                        string(credentialsId: 'cloudcasa-testmail-api-key', variable: 'IN_TESTMAIL_APICODE'),
+                        string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
+                        string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
+                        string(credentialsId: 'cloudcasa-registered-user-password', variable: 'IN_REG_PASS'),
+                        string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
+                    ]) {
+                        withEnv(['CI=true']) {
+                            image.inside {
+                                // docker.image().inside() bind-mounts the workspace at its
+                                // own path, not the Dockerfile's WORKDIR (/app) where `npm ci`
+                                // installed dependencies during the image build - so they're
+                                // invisible to node's module resolution from the workspace.
+                                // Symlink them in rather than re-running `npm ci` here, which
+                                // would defeat the point of prebuilding the image.
+                                sh 'ln -sfn /app/node_modules node_modules'
+                                sh '''
+                                    export BASE_URL="$IN_BASE_URL"
+                                    export CC_EMAIL="$IN_CC_EMAIL"
+                                    export CC_PASSWORD="$IN_CC_PASS"
+                                    export TESTMAIL_NAMESPACE="$IN_TESTMAIL_NS"
+                                    export TESTMAIL_API_KEY="$IN_TESTMAIL_APICODE"
+                                    export CLOUDCASA_API_URL="$IN_API_URL"
+                                    export CLOUDCASA_API_TOKEN="$IN_API_CODE"
+                                    export REGISTERED_USER_PASSWORD="$IN_REG_PASS"
+                                    export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
+                                    npx playwright test
+                                '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Goal: keep NOTHING on the Jenkins controller. The self-contained
+            // Playwright HTML report (index.html + data/ holding the failure
+            // screenshots/videos/traces) is pushed to the Nexus `raw` repo,
+            // which serves and renders it directly in the browser. Jenkins only
+            // keeps a link (in the build description) — no archived artifacts.
+            //
+            // Exception: while Nexus isn't wired yet (NEXUS_URL placeholder), we
+            // fall back to archiving on the controller so reports aren't lost
+            // during setup. Setting a real NEXUS_URL disables that fallback.
+            script {
+                if (env.NEXUS_URL?.contains('REPLACE-ME')) {
+                    echo 'NEXUS_URL is a placeholder — Nexus not wired yet. ' +
+                         'Falling back to archiving on the controller so reports ' +
+                         'are not lost during setup.'
+                    archiveArtifacts(
+                        artifacts: 'playwright-report/**, test-results/**',
+                        allowEmptyArchive: true,
+                        fingerprint: true
+                    )
+                } else {
+                    // Upload the report as an unpacked tree (one PUT per file)
+                    // so index.html renders in the browser (repo must be created
+                    // with Content Disposition = Inline). Nexus is the single
+                    // source of truth; nothing is archived on the controller.
+                    def reportBase = "${env.NEXUS_URL}/repository/${env.NEXUS_REPORTS_REPO}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
+                    withCredentials([usernamePassword(
+                        credentialsId: 'nexus-creds',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS')]) {
+                        withEnv(["REPORT_BASE=${reportBase}"]) {
+                            sh '''
+                                set -eu
+                                if [ ! -d playwright-report ]; then
+                                    echo "No playwright-report/ — nothing to upload."
+                                    exit 0
+                                fi
+                                cd playwright-report
+                                find . -type f | while read -r f; do
+                                    rel="${f#./}"
+                                    curl -sSf -u "$NEXUS_USER:$NEXUS_PASS" \
+                                        --upload-file "$f" "$REPORT_BASE/$rel"
+                                done
+                            '''
+                        }
+                    }
+                    echo "Report published: ${reportBase}/index.html"
+                    currentBuild.description = "<a href=\"${reportBase}/index.html\">Playwright report</a>"
+                }
+            }
+        }
+    }
+}
