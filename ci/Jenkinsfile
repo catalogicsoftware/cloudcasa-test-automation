@@ -154,28 +154,38 @@ pipeline {
                 } else {
                     // One PUT per file, so each stays fetchable (repo: Content Disposition = Inline).
                     def reportBase = "${env.NEXUS_URL}/repository/${env.NEXUS_REPORTS_REPO}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
-                    withCredentials([usernamePassword(
-                        credentialsId: 'nexus-creds',
-                        usernameVariable: 'NEXUS_USER',
-                        passwordVariable: 'NEXUS_PASS')]) {
-                        withEnv(["REPORT_BASE=${reportBase}"]) {
-                            sh '''
-                                set -eu
-                                if [ ! -d playwright-report ]; then
-                                    echo "No playwright-report/ — nothing to upload."
-                                    exit 0
-                                fi
-                                cd playwright-report
-                                find . -type f | while read -r f; do
-                                    rel="${f#./}"
-                                    curl -sSf -u "$NEXUS_USER:$NEXUS_PASS" \
-                                        --upload-file "$f" "$REPORT_BASE/$rel"
-                                done
-                            '''
+                    // Same as Allure above: a broken upload must not fail the build.
+                    try {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'nexus-creds',
+                                usernameVariable: 'NEXUS_USER',
+                                passwordVariable: 'NEXUS_PASS'),
+                            // Nexus is behind an internal CA the agents don't trust (see ci/README.md).
+                            file(credentialsId: 'internal-ca-cert', variable: 'CA_BUNDLE'),
+                        ]) {
+                            withEnv(["REPORT_BASE=${reportBase}"]) {
+                                sh '''
+                                    set -eu
+                                    if [ ! -d playwright-report ]; then
+                                        echo "No playwright-report/ — nothing to upload."
+                                        exit 0
+                                    fi
+                                    cd playwright-report
+                                    find . -type f | while read -r f; do
+                                        rel="${f#./}"
+                                        curl -sSf --cacert "$CA_BUNDLE" -u "$NEXUS_USER:$NEXUS_PASS" \
+                                            --upload-file "$f" "$REPORT_BASE/$rel"
+                                    done
+                                '''
+                            }
                         }
+                        echo "Playwright report files published: ${reportBase}/"
+                        links << "<a href=\"${reportBase}/index.html\">Playwright files (Nexus)</a>"
+                    } catch (err) {
+                        echo "Nexus publish failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
                     }
-                    echo "Playwright report files published: ${reportBase}/"
-                    links << "<a href=\"${reportBase}/index.html\">Playwright files (Nexus)</a>"
                 }
 
                 if (links) {

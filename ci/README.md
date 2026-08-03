@@ -53,14 +53,33 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
-Two more credentials are **Username with password**, not Secret text — they are
-used by the publish steps in the `post` block, which run on the node rather than
-inside the test container:
+Three more credentials are used by the publish steps in the `post` block, which
+run on the node rather than inside the test container. Two are **Username with
+password** and one is a **Secret file**:
 
-| Credential ID  | What it is                                                                        |
-| -------------- | --------------------------------------------------------------------------------- |
-| `allure-creds` | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) |
-| `nexus-creds`  | a Nexus account with **write** access to the reports repo                         |
+| Credential ID      | Kind            | What it is                                                                        |
+| ------------------ | --------------- | --------------------------------------------------------------------------------- |
+| `allure-creds`     | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) |
+| `nexus-creds`      | user/password   | a Nexus account with **write** access to the reports repo                         |
+| `internal-ca-cert` | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                     |
+
+`internal-ca-cert` is needed because Nexus is served over HTTPS with a
+certificate chain rooted in the corporate (AD) CA, which the agents don't trust
+out of the box — without it the upload dies with `curl: (60) SSL certificate
+problem: self-signed certificate in certificate chain`. It is passed to `curl`
+as `--cacert`, so no change to the node's system trust store is required, and
+verification stays on. The certificate itself is public material; Secret file is
+just a convenient way to get it onto the node. Extract the root (the last
+certificate in the chain) with:
+
+```bash
+openssl s_client -connect cc-nexus.ad.catalogic.us:443 -showcerts </dev/null
+```
+
+Alternatively, install that root into the node's trust store
+(`/usr/local/share/ca-certificates/` + `update-ca-certificates`) and drop the
+`--cacert` flag — that fixes every HTTPS call from the agent, but needs root on
+the host.
 
 ## Reports
 
@@ -212,9 +231,10 @@ recreating as a `raw (hosted)` repository:
 | Content Disposition | **Inline** ⚠️ (`Attachment` would download instead of render) |
 
 Also required: a **username/password** (service account or token) Jenkins
-credential with **write** access to the repo, ID `nexus-creds`. `NEXUS_URL`
-must have no trailing slash; while it contains `REPLACE-ME` the upload step is
-skipped and the rest of the pipeline runs normally.
+credential with **write** access to the repo, ID `nexus-creds`, plus the
+`internal-ca-cert` Secret file for the HTTPS chain. `NEXUS_URL` must have no
+trailing slash; while it contains `REPLACE-ME` the upload step is skipped and the
+rest of the pipeline runs normally.
 
 The controller node must have `curl` available (standard on most agents).
 
@@ -287,6 +307,20 @@ safe.directory <path>` for both the repo's top-level path _and_ its literal
 - **Missing `REGISTERED_USER_PASSWORD`** — acceptable if left blank; only the
   test(s) that depend on a pre-registered user's password fail, with a clear
   assertion error, not a stack/mechanism failure.
+- **`curl: (60) SSL certificate problem: self-signed certificate in certificate
+chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
+  (AD) CA, which the agent doesn't trust; `curl` has its own trust store, so a
+  Java/JVM truststore change does not help either. Supply the root via the
+  `internal-ca-cert` credential (see "Required credentials"). `-k` would also
+  "work", but that upload carries the Nexus password in a Basic-auth header, so
+  it must not go over an unverified connection.
+- **`CredentialNotFoundException` in the `post` block** — the publish steps run
+  on the node and need `allure-creds`, `nexus-creds` and `internal-ca-cert` to
+  exist before the first build. Both branches are wrapped in `try/catch`, so a
+  missing credential (or an unreachable host) shows up only as
+  `Allure publish failed: ...` / `Nexus publish failed: ...` in the console plus
+  an UNSTABLE build — easy to miss in a long log, so check for those lines when a
+  build is green-ish but no report appeared.
 - Real app/test failures seen against a live staging target are not stack
   issues: e.g. `page.waitForResponse: Test timeout of 120000ms exceeded` on
   login/password-reset flows reflects the live app's actual response time
