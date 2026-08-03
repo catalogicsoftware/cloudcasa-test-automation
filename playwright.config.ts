@@ -10,7 +10,8 @@ export default defineConfig({
   },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Kept low in CI: the workers share one CloudCasa account (see ci/README.md).
+  workers: process.env.CI ? 2 : undefined,
   // In CI the raw results are POSTed to the Allure Docker Service (see ci/README.md).
   reporter: [['html'], ['allure-playwright']],
   use: {

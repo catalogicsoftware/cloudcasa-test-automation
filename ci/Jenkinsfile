@@ -37,7 +37,8 @@ pipeline {
                         string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
                     ]) {
                         withEnv(['CI=true']) {
-                            image.inside {
+                            // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
+                            image.inside('--ipc=host') {
                                 // The workspace isn't the image's /app, so its node_modules aren't resolvable.
                                 sh 'ln -sfn /app/node_modules node_modules'
                                 sh '''

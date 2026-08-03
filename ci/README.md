@@ -13,9 +13,19 @@ Runs the CloudCasa Playwright suite inside a container on a Jenkins worker.
 ## How it works
 
 The pipeline (`agent any`) explicitly runs `docker.build('cloudcasa-playwright-tests',
-'-f ci/Dockerfile .')` from the repo root, then `image.inside { ... }` to run the
-`Test` stage's `sh` steps inside that container. `CI=true` activates the CI
-branch of `playwright.config.ts` (headless, `retries: 2`, `workers: 1`).
+'-f ci/Dockerfile .')` from the repo root, then `image.inside('--ipc=host') { ... }`
+to run the `Test` stage's `sh` steps inside that container. `CI=true` activates the
+CI branch of `playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+
+`--ipc=host` is required once `workers` is above 1: Docker gives a container 64 MB
+of `/dev/shm` by default, which is enough for a single Chromium and makes parallel
+ones crash with unhelpful renderer errors (`--shm-size=1gb` is the alternative).
+
+`workers` is deliberately low rather than "number of cores": every test logs in as
+the same CloudCasa account (`CC_EMAIL`), so parallel workers share that account's
+server-side state — organization membership, pending invites. Per-file testmail
+tags and self-healing invite cleanup keep the current suite independent, but
+raising this further needs the same check for whatever tests exist by then.
 
 This intentionally does **not** use the declarative `agent { dockerfile { ... } }`
 sugar — see the comment at the top of `Jenkinsfile` and the Troubleshooting
