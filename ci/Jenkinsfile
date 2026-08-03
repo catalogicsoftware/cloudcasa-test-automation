@@ -17,6 +17,10 @@ pipeline {
         ALLURE_URL = 'http://172.24.3.150:5050'
         // Must stay stable — it carries the trend history.
         ALLURE_PROJECT_ID = 'cloudcasa-e2e'
+
+        // Testmo Cloud; a REPLACE-ME placeholder skips the submit.
+        TESTMO_URL = 'https://REPLACE-ME.testmo.net'
+        TESTMO_PROJECT_ID = 'REPLACE-ME'
     }
 
     stages {
@@ -185,6 +189,38 @@ pipeline {
                         links << "<a href=\"${reportBase}/index.html\">Playwright files (Nexus)</a>"
                     } catch (err) {
                         echo "Nexus publish failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                // --- 3. Testmo ---
+                if (env.TESTMO_URL?.contains('REPLACE-ME')) {
+                    echo 'TESTMO_URL is a placeholder — skipping the Testmo submit.'
+                } else if (!fileExists('test-results/junit.xml')) {
+                    echo 'No JUnit results — skipping the Testmo submit.'
+                } else {
+                    // Same as the steps above: a broken submit must not fail the build.
+                    try {
+                        // IN_* name dodges Jenkins' sensitive-name filter (see ci/README.md).
+                        withCredentials([string(credentialsId: 'testmo-token', variable: 'IN_TESTMO_CODE')]) {
+                            // The stage's `image` variable is out of scope here.
+                            docker.image('cloudcasa-playwright-tests').inside {
+                                sh '''
+                                    set -eu
+                                    ln -sfn /app/node_modules node_modules
+                                    export TESTMO_TOKEN="$IN_TESTMO_CODE"
+                                    npx testmo automation:run:submit \
+                                        --instance "$TESTMO_URL" \
+                                        --project-id "$TESTMO_PROJECT_ID" \
+                                        --name "$JOB_NAME #$BUILD_NUMBER" \
+                                        --source playwright \
+                                        --results test-results/junit.xml
+                                '''
+                            }
+                        }
+                        echo 'Testmo run submitted.'
+                    } catch (err) {
+                        echo "Testmo submit failed: ${err}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }

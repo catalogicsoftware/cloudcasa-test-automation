@@ -36,6 +36,8 @@ section below for why.
 - **Docker** available on the agent (the pipeline shells out to `docker build` / `docker run`).
 - **`curl`** available on the node (used to publish reports to Allure and Nexus).
 - **Network access from the node** to the Allure host (`ALLURE_URL`) and Nexus.
+- **Outbound HTTPS from the node** to `*.testmo.net`. Every other integration talks
+  inward only, so this is the one path that may need the corporate proxy.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
 ## Required credentials
@@ -63,7 +65,7 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
-Three more credentials are used by the publish steps in the `post` block, which
+Four more credentials are used by the publish steps in the `post` block, which
 run on the node rather than inside the test container. Two are **Username with
 password** and one is a **Secret file**:
 
@@ -72,6 +74,7 @@ password** and one is a **Secret file**:
 | `allure-creds`     | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) |
 | `nexus-creds`      | user/password   | a Nexus account with **write** access to the reports repo                         |
 | `internal-ca-cert` | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                     |
+| `testmo-token`     | Secret text     | Testmo API key with write access for automation runs                              |
 
 `internal-ca-cert` is needed because Nexus is served over HTTPS with a
 certificate chain rooted in the corporate (AD) CA, which the agents don't trust
@@ -93,12 +96,13 @@ the host.
 
 ## Reports
 
-Two publish targets, both off the controller:
+Three publish targets, all off the controller:
 
 | Target                                  | What it is                                            | Renders?                  |
 | --------------------------------------- | ----------------------------------------------------- | ------------------------- |
 | **Allure Docker Service** on its own VM | the browsable report + cross-build trend history      | Yes                       |
 | **Nexus `raw` repo**                    | the Playwright HTML report kept as a plain file store | No — nginx CSP, see below |
+| **Testmo Cloud**                        | automation run history and team-facing reporting      | Yes — Testmo's own UI     |
 
 - **Allure is the report people open.** The `post` block POSTs the raw
   `allure-results` to the service, which generates the report on its own host and
@@ -118,6 +122,11 @@ Two publish targets, both off the controller:
 - **A publish failure marks the build UNSTABLE rather than failing it** — the
   suite's own verdict is what matters, and a broken upload must not read as a
   test failure.
+- **Testmo gets one automation run per build**, submitted from the `post` block by
+  `testmo automation:run:submit` reading `test-results/junit.xml`. Statuses, durations
+  and failure messages only: no attachments (they are already in Allure and Nexus)
+  and no links to manual test cases. It runs inside the test image because the CLI is
+  installed there, not on the node.
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
 > so a local `npm test` and a CI run produce the same results. Note that
@@ -331,6 +340,14 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   `Allure publish failed: ...` / `Nexus publish failed: ...` in the console plus
   an UNSTABLE build — easy to miss in a long log, so check for those lines when a
   build is green-ish but no report appeared.
+- **`Testmo submit failed: ...` with the build UNSTABLE.** The submit is wrapped like
+  the other publish steps, so this never fails the build. Usual causes: the
+  `testmo-token` credential is missing, the key lacks write access, `TESTMO_PROJECT_ID`
+  points at a project the key cannot see, or the node has no outbound HTTPS to
+  `*.testmo.net`.
+- **`No JUnit results — skipping the Testmo submit.`** `test-results/junit.xml` was
+  never written, which means the `Test` stage did not get as far as running tests —
+  look for an image build or workspace-mount failure above, not at Testmo.
 - Real app/test failures seen against a live staging target are not stack
   issues: e.g. `page.waitForResponse: Test timeout of 120000ms exceeded` on
   login/password-reset flows reflects the live app's actual response time
