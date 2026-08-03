@@ -24,7 +24,8 @@ section below for why.
 ## Jenkins prerequisites
 
 - **Docker** available on the agent (the pipeline shells out to `docker build` / `docker run`).
-- **`curl`** available on the node (used to upload the report to Nexus).
+- **`curl`** available on the node (used to publish reports to Allure and Nexus).
+- **Network access from the node** to the Allure host (`ALLURE_URL`) and Nexus.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
 ## Required credentials
@@ -52,35 +53,147 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
+Two more credentials are **Username with password**, not Secret text — they are
+used by the publish steps in the `post` block, which run on the node rather than
+inside the test container:
+
+| Credential ID  | What it is                                                                        |
+| -------------- | --------------------------------------------------------------------------------- |
+| `allure-creds` | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) |
+| `nexus-creds`  | a Nexus account with **write** access to the reports repo                         |
+
 ## Reports
 
-**Design goal: keep nothing on the Jenkins controller.** Nexus is the single
-source of truth for reports.
+Two publish targets, both off the controller:
 
-- The **Playwright HTML report** is self-contained: `index.html` plus a `data/`
-  folder holding the failure **screenshots, videos and traces**. The whole tree
-  is pushed to a Nexus `raw` repo, which **renders it in the browser** directly
-  (repo must use Content Disposition = Inline). Jenkins keeps only a **link** to
-  it in the build description — no archived artifacts, no Allure results on the
-  controller.
-- **Fallback (inactive).** Nexus is wired — `NEXUS_URL` holds a real host, so
-  reports go straight to Nexus. The pipeline still falls back to archiving
-  `playwright-report/**` + `test-results/**` on the controller if `NEXUS_URL` is
-  ever reset to a `REPLACE-ME` placeholder, so nothing is lost mid-reconfiguration.
+| Target                                  | What it is                                            | Renders?                  |
+| --------------------------------------- | ----------------------------------------------------- | ------------------------- |
+| **Allure Docker Service** on its own VM | the browsable report + cross-build trend history      | Yes                       |
+| **Nexus `raw` repo**                    | the Playwright HTML report kept as a plain file store | No — nginx CSP, see below |
 
-> **Allure is local-only.** `playwright.config.ts` enables the `allure-playwright`
-> reporter only when `process.env.CI` is unset, so `npm test` on a developer
-> machine still produces Allure results, while CI emits just the HTML report.
-> The Allure plugin step was removed from the pipeline — it stores results and
-> trend history on the controller, which conflicts with the no-controller-storage
-> goal, and the failure artifacts it would show are already inside the Playwright
-> report served from Nexus.
+- **Allure is the report people open.** The `post` block POSTs the raw
+  `allure-results` to the service, which generates the report on its own host and
+  keeps the history there. Allure attachments (screenshots, screencasts, traces)
+  are referenced by relative path from inside the report, so whatever serves an
+  Allure report must hold its attachments too — which is why this needed a host
+  with persistent storage, not just a renderer.
+- **The Playwright HTML report still goes to Nexus** as an unpacked tree. Its
+  individual files stay fetchable by URL; `index.html` itself does not render
+  (CSP). It is kept as a second, independent copy of the artifacts — drop that
+  branch of the `post` block if that isn't wanted.
+- **Nothing is kept on the controller.** No archived artifacts, no Allure
+  results, no trend history.
+- **Placeholder escape hatch.** Either publish step is skipped when its URL env
+  var is reset to a `REPLACE-ME` placeholder; for Nexus that also re-enables
+  archiving `playwright-report/**` + `test-results/**` on the controller.
+- **A publish failure marks the build UNSTABLE rather than failing it** — the
+  suite's own verdict is what matters, and a broken upload must not read as a
+  test failure.
+
+> `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
+> so a local `npm test` and a CI run produce the same results. Note that
+> `allure-playwright` **appends** to `allure-results` and the Jenkins workspace is
+> reused between builds, so the `Test` stage starts with `rm -rf allure-results` —
+> without it every build would publish its whole accumulated history as one giant
+> run. (Locally the same accumulation happens silently: a month of runs had grown
+> to 938 files / 853 MB.)
+
+### Nexus — file hosting works, HTML rendering doesn't
+
+**Works:** `curl`-uploading the report tree, and serving the individual files
+back — **screenshots, screencasts, logs and traces** are all fetchable by URL.
+Nexus remains a valid artifact store, and the repo was created with Content
+Disposition = Inline.
+
+**Doesn't work:** `index.html` as a **rendered page**. The nginx reverse proxy in
+front of Nexus sends a `Content-Security-Policy` header that blocks the report's
+scripts, so the report UI loads blank/broken. This is a proxy-level restriction,
+not a Nexus repo setting — no combination of repo options fixes it.
+
+Making this route work requires relaxing that CSP at nginx — which affects
+everything served through that proxy, not just these reports — or stripping the
+header for this path only. That's a security trade-off pending a decision with
+DevOps, which is why the option is documented rather than fixed here.
+
+This is why Nexus ended up as an artifact store only, and the browsable report
+lives on the Allure host instead.
+
+### Why not the Allure Jenkins plugin
+
+It renders fine (the CSP problem is specific to Nexus/nginx), but it keeps
+per-build results **and** trend history on the controller, and for this suite the
+bulk of that is failure attachments. Moving that storage off the controller is
+harder than it looks:
+
+- **Artifact Manager plugins (S3, Artifactory) do not help.** The Allure plugin
+  writes `allure-results.zip` straight into the build's `archive/` directory
+  instead of going through Jenkins' artifact-manager abstraction, so an artifact
+  manager silently doesn't pick it up
+  ([allure-plugin#359](https://github.com/jenkinsci/allure-plugin/issues/359)).
+- **Relocating the build records does work**, via the core system property
+  `jenkins.model.Jenkins.buildsDir` — but it's a startup property (no UI since
+  Jenkins 2.119, because it does not migrate existing build records), so it needs a
+  restart plus a manual move of existing builds, and NFS wants tuned mount options
+  for Jenkins' many small reads/writes.
+
+The Docker service on its own VM avoids all of that: results, reports, history and
+attachments live on that host's own disk.
+
+### Allure server
+
+A dedicated Ubuntu 24 VM, containers only. Not domain-joined — reached by IP.
+
+| Thing             | Value                                                      |
+| ----------------- | ---------------------------------------------------------- |
+| API / report      | `http://172.24.3.150:5050/allure-docker-service`           |
+| UI (project list) | `http://172.24.3.150:5252`                                 |
+| Project ID        | `cloudcasa-e2e` — must stay stable, it carries the history |
+| Compose file      | `/opt/allure/docker-compose.yml` + `/opt/allure/.env`      |
+| Data              | `/var/lib/allure/projects` — dedicated 100 GB ext4 disk    |
+| Images            | `frankescobar/allure-docker-service:2.44.0` + `-ui`        |
+
+Notable service settings: `CHECK_RESULTS_EVERY_SECONDS=NONE` (the pipeline pushes
+and calls `generate-report` explicitly, so directory polling is pointless),
+`KEEP_HISTORY_LATEST=25`, `OPTIMIZE_STORAGE=1`, `SECURITY_ENABLED=1` with an admin
+user for CI plus `MAKE_VIEWER_ENDPOINTS_PUBLIC=1` so report links open without a
+login while writes stay authenticated.
+
+**Publish flow in the `post` block:** `POST /login` (cookie jar + CSRF token) →
+`POST /send-results` in batches of 20 files → `GET /generate-report`, whose
+response carries the `report_url` for this build. The build description links
+there. Batching is deliberate: one request per file is needlessly slow, and one
+request for all of them can carry hundreds of MB of traces and videos.
+
+Gotchas worth keeping in mind when touching that host:
+
+- **Volume ownership.** The container does not run as root. The host directory must
+  be owned by the image's own UID/GID (read them with
+  `docker run --rm --entrypoint sh <image> -c 'id; ls -ldn /app/allure-docker-api/static/projects'`),
+  otherwise report generation dies with `AccessDeniedException` while the API keeps
+  answering — see Troubleshooting.
+- **`ALLURE_DOCKER_PUBLIC_API_URL` must be the URL the browser sees.** The UI is a
+  browser-side SPA that calls the API directly; `localhost` there only works when
+  the UI is opened on the VM itself.
+- **No TLS yet**, and it must not be put behind the shared corporate nginx — the
+  same CSP that blocks the Playwright report would block this one. A reverse proxy
+  on that VM is the way in, and `ALLURE_DOCKER_PUBLIC_API_URL` has to move to
+  `https` in the same step or mixed content breaks the UI.
+- **Docker bypasses ufw.** Published ports are wired into the `DOCKER`/`DOCKER-USER`
+  chains, not `INPUT`, so `ufw deny 5050` does nothing. Restrict via `DOCKER-USER`
+  rules (and persist them) or bind the ports to loopback behind a proxy.
+- **Allure CLI in the image is 2.44 while this repo uses `allure-playwright` 3.x.**
+  The on-disk results format is Allure 2-compatible, so the pair works — this was
+  verified with a manual push before wiring the pipeline. If a future
+  `allure-playwright` upgrade breaks it, the fallback is generating the report in
+  the pipeline (`npx allure generate`) and serving the static tree, at the cost of
+  handling history by hand.
 
 ### Nexus report repository
 
 The `post` step uploads `playwright-report/` as an **unpacked tree** (one `curl`
-PUT per file) to a Nexus `raw (hosted)` repo, so `index.html` opens in the
-browser. Final URL: `<NEXUS_URL>/repository/<repo>/<job>/<build>/index.html`.
+PUT per file) to a Nexus `raw (hosted)` repo. Final URL:
+`<NEXUS_URL>/repository/<repo>/<job>/<build>/index.html` — reachable, but see
+the CSP note above.
 
 **Current wiring** (set in the `environment` block of the `Jenkinsfile`):
 
@@ -110,6 +223,11 @@ The controller node must have `curl` available (standard on most agents).
 - **Keep the image tag in sync with Playwright.** When `@playwright/test` is
   upgraded in `package.json`, bump the `FROM mcr.microsoft.com/playwright:vX.Y.Z-noble`
   tag in `Dockerfile` to the matching version.
+- **After an `allure-playwright` major upgrade, check the Allure host still
+  renders the results** — the image ships Allure CLI 2.44, the reporter is on 3.x,
+  and the compatibility is the results format, not a guarantee.
+- **Watch disk on the Allure host.** `KEEP_HISTORY_LATEST=25` bounds it, but the
+  attachments are what fill the 100 GB: `df -h /var/lib/allure`.
 
 ## Local sanity check
 
@@ -173,3 +291,25 @@ safe.directory <path>` for both the repo's top-level path _and_ its literal
   issues: e.g. `page.waitForResponse: Test timeout of 120000ms exceeded` on
   login/password-reset flows reflects the live app's actual response time
   under test, not a pipeline misconfiguration.
+
+Allure host specifically:
+
+- **`AccessDeniedException` / `mkdir: Permission denied` under
+  `/app/allure-docker-api/static/projects` while the API still answers.** The bind
+  mount landed correctly (`/app/projects` is a symlink to that path) but the host
+  directory isn't writable by the container's non-root user. Read the expected
+  owner out of the image and `chown -R` the host directory to it — do not "fix" it
+  by running the container as root.
+- **A report that opens but is empty ("There are no items", all counters 0).** That
+  is the auto-created `default` project, not ours. Pick `cloudcasa-e2e` in the UI's
+  project selector.
+- **Admin buttons greyed out in the UI** (SEND RESULTS, GENERATE REPORT, CLEAN…) —
+  expected: `MAKE_VIEWER_ENDPOINTS_PUBLIC=1` grants anonymous **read** only. Log in
+  as the admin user to get them.
+- **`send-results` returns 401/403 from a script.** With `SECURITY_ENABLED=1`,
+  writes need the `POST /login` cookie jar **plus** the CSRF token from the
+  `csrf_access_token` cookie in an `X-CSRF-TOKEN` header — basic auth is not
+  enough. See the `post` block for the working sequence.
+- **The whole upload fails at once with an argument-list error.** Don't build a
+  single request out of every result file: locally that command line reached ~65 000
+  characters (Windows caps at ~32 767). Hence the batching in the `post` block.
