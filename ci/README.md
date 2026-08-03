@@ -65,9 +65,10 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
-Four more credentials are used by the publish steps in the `post` block, which
-run on the node rather than inside the test container. Two are **Username with
-password** and one is a **Secret file**:
+Four more credentials are used by the publish steps in the `post` block. The
+Allure and Nexus ones run on the node; the Testmo one runs inside the test image,
+which is why its key needs the `IN_*` indirection described under Troubleshooting.
+Two are **Username with password**, one a **Secret file** and one **Secret text**:
 
 | Credential ID      | Kind            | What it is                                                                        |
 | ------------------ | --------------- | --------------------------------------------------------------------------------- |
@@ -116,8 +117,8 @@ Three publish targets, all off the controller:
   branch of the `post` block if that isn't wanted.
 - **Nothing is kept on the controller.** No archived artifacts, no Allure
   results, no trend history.
-- **Placeholder escape hatch.** Either publish step is skipped when its URL env
-  var is reset to a `REPLACE-ME` placeholder; for Nexus that also re-enables
+- **Placeholder escape hatch.** Each publish step is skipped when its URL env var
+  is reset to a `REPLACE-ME` placeholder; for Nexus that also re-enables
   archiving `playwright-report/**` + `test-results/**` on the controller.
 - **A publish failure marks the build UNSTABLE rather than failing it** — the
   suite's own verdict is what matters, and a broken upload must not read as a
