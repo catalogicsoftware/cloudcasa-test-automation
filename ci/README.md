@@ -28,8 +28,15 @@ tags and self-healing invite cleanup keep the current suite independent, but
 raising this further needs the same check for whatever tests exist by then.
 
 This intentionally does **not** use the declarative `agent { dockerfile { ... } }`
-sugar — see the comment at the top of `Jenkinsfile` and the Troubleshooting
-section below for why.
+sugar — see the first two Troubleshooting entries below for why.
+
+The stage starts by deleting `allure-results/`, `playwright-report/` and
+`test-results/` **on the node, before the image is built**. The workspace is
+reused between builds, and `allure-playwright` appends rather than replaces, so
+without this a build would publish its whole accumulated history as one run.
+Doing it before the build rather than inside the container also means that a
+stage which dies early (image build, credentials, mount) leaves nothing behind
+for the `post` block to publish as this build's results.
 
 ## Jenkins prerequisites
 
@@ -117,12 +124,19 @@ Allure and Nexus ones run on the node; the Testmo one runs inside the test image
 which is why its key needs the `IN_*` indirection described under Troubleshooting.
 Two are **Username with password**, one a **Secret file** and one **Secret text**:
 
-| Credential ID      | Kind            | What it is                                                                        |
-| ------------------ | --------------- | --------------------------------------------------------------------------------- |
-| `allure-creds`     | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) |
-| `nexus-creds`      | user/password   | a Nexus account with **write** access to the reports repo                         |
-| `internal-ca-cert` | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                     |
-| `testmo-token`     | Secret text     | Testmo API key with write access for automation runs                              |
+| Credential ID      | Kind            | What it is                                                                                                                |
+| ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `allure-creds`     | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) — must contain no `"` or `\`, see below |
+| `nexus-creds`      | user/password   | a Nexus account with **write** access to the reports repo                                                                 |
+| `internal-ca-cert` | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                                                             |
+| `testmo-token`     | Secret text     | Testmo API key with write access for automation runs                                                                      |
+
+`allure-creds` has one constraint: the Allure login body is a JSON document built
+with `printf` in the `post` block, so a password containing `"` or `\` produces
+invalid JSON and every login fails with a misleading 400. Escaping it properly
+would mean four levels of quoting (Groovy → shell → sed → JSON) in code no test
+covers, so the constraint is documented rather than handled. Any other character
+is fine — the value never reaches an argument list or the disk.
 
 `internal-ca-cert` is needed because Nexus is served over HTTPS with a
 certificate chain rooted in the corporate (AD) CA, which the agents don't trust
@@ -177,12 +191,10 @@ Three publish targets, all off the controller:
   installed there, not on the node.
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
-> so a local `npm test` and a CI run produce the same results. Note that
-> `allure-playwright` **appends** to `allure-results` and the Jenkins workspace is
-> reused between builds, so the `Test` stage starts with `rm -rf allure-results` —
-> without it every build would publish its whole accumulated history as one giant
-> run. (Locally the same accumulation happens silently: a month of runs had grown
-> to 938 files / 853 MB.)
+> so a local `npm test` and a CI run produce the same results. `allure-playwright`
+> **appends** to `allure-results`, which is why the `Test` stage clears it first
+> (see "How it works"). Locally the same accumulation happens silently: a month of
+> runs had grown to 938 files / 853 MB.
 
 ### Nexus — file hosting works, HTML rendering doesn't
 
