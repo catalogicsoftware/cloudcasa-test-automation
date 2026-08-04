@@ -1,4 +1,5 @@
 // Runs the Playwright suite in the ci/Dockerfile image; setup in ci/README.md.
+// Publish targets come from Jenkins env vars so they change without a push; unset means the step is off (see ci/README.md).
 pipeline {
     agent any
 
@@ -6,21 +7,6 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20'))
-    }
-
-    environment {
-        // No trailing slash; a REPLACE-ME placeholder archives on the controller instead.
-        NEXUS_URL = 'https://cc-nexus.ad.catalogic.us'
-        NEXUS_REPORTS_REPO = 'cloudcasa-test-reports'
-
-        // Allure service on its own VM; a REPLACE-ME placeholder skips the publish.
-        ALLURE_URL = 'http://172.24.3.150:5050'
-        // Must stay stable — it carries the trend history.
-        ALLURE_PROJECT_ID = 'cloudcasa-e2e'
-
-        // Testmo Cloud; a REPLACE-ME placeholder skips the submit.
-        TESTMO_URL = 'https://REPLACE-ME.testmo.net'
-        TESTMO_PROJECT_ID = 'REPLACE-ME'
     }
 
     stages {
@@ -75,9 +61,17 @@ pipeline {
                 // Set once at the end so neither step clobbers the other's link.
                 def links = []
 
+                // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
+                def allureRoot = env.ALLURE_URL?.trim()?.replaceAll('/+$', '')
+                def allureProject = env.ALLURE_PROJECT_ID?.trim()
+                def nexusRoot = env.NEXUS_URL?.trim()?.replaceAll('/+$', '')
+                def nexusRepo = env.NEXUS_REPORTS_REPO?.trim()?.replaceAll('/+$', '')
+                def testmoRoot = env.TESTMO_URL?.trim()?.replaceAll('/+$', '')
+                def testmoProject = env.TESTMO_PROJECT_ID?.trim()
+
                 // --- 1. Allure ---
-                if (env.ALLURE_URL?.contains('REPLACE-ME')) {
-                    echo 'ALLURE_URL is a placeholder — skipping the Allure publish.'
+                if (!allureRoot || !allureProject) {
+                    echo 'ALLURE_URL / ALLURE_PROJECT_ID not set in Jenkins — skipping the Allure publish.'
                 } else if (!fileExists('allure-results')) {
                     echo 'No allure-results/ — skipping the Allure publish.'
                 } else {
@@ -87,7 +81,9 @@ pipeline {
                             credentialsId: 'allure-creds',
                             usernameVariable: 'ALLURE_USER',
                             passwordVariable: 'ALLURE_PASS')]) {
-                            withEnv(["ALLURE_BASE=${env.ALLURE_URL}/allure-docker-service"]) {
+                            // ALLURE_PROJECT_ID is passed explicitly rather than read from the ambient env.
+                            withEnv(["ALLURE_BASE=${allureRoot}/allure-docker-service",
+                                     "ALLURE_PROJECT_ID=${allureProject}"]) {
                                 sh '''
                                     set -eu
 
@@ -135,8 +131,8 @@ pipeline {
                         def allureUrl = fileExists('allure-report-url.txt')
                             ? readFile('allure-report-url.txt').trim() : ''
                         if (!allureUrl) {
-                            allureUrl = "${env.ALLURE_URL}/allure-docker-service/projects/" +
-                                        "${env.ALLURE_PROJECT_ID}/reports/latest/index.html"
+                            allureUrl = "${allureRoot}/allure-docker-service/projects/" +
+                                        "${allureProject}/reports/latest/index.html"
                         }
                         echo "Allure report: ${allureUrl}"
                         links << "<a href=\"${allureUrl}\">Allure report</a>"
@@ -147,18 +143,24 @@ pipeline {
                 }
 
                 // --- 2. Nexus ---
-                if (env.NEXUS_URL?.contains('REPLACE-ME')) {
-                    echo 'NEXUS_URL is a placeholder — Nexus not wired yet. ' +
+                if (!nexusRoot || !nexusRepo) {
+                    echo 'NEXUS_URL / NEXUS_REPORTS_REPO not set in Jenkins. ' +
                          'Falling back to archiving on the controller so reports ' +
                          'are not lost during setup.'
-                    archiveArtifacts(
-                        artifacts: 'playwright-report/**, test-results/**',
-                        allowEmptyArchive: true,
-                        fingerprint: true
-                    )
+                    // Wrapped like the uploads: this is still a publish step, not a test verdict.
+                    try {
+                        archiveArtifacts(
+                            artifacts: 'playwright-report/**, test-results/**',
+                            allowEmptyArchive: true,
+                            fingerprint: true
+                        )
+                    } catch (err) {
+                        echo "Controller archiving failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 } else {
                     // One PUT per file, so each stays fetchable (repo: Content Disposition = Inline).
-                    def reportBase = "${env.NEXUS_URL}/repository/${env.NEXUS_REPORTS_REPO}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
+                    def reportBase = "${nexusRoot}/repository/${nexusRepo}/${env.JOB_NAME}/${env.BUILD_NUMBER}"
                     // Same as Allure above: a broken upload must not fail the build.
                     try {
                         withCredentials([
@@ -194,8 +196,8 @@ pipeline {
                 }
 
                 // --- 3. Testmo ---
-                if (env.TESTMO_URL?.contains('REPLACE-ME')) {
-                    echo 'TESTMO_URL is a placeholder — skipping the Testmo submit.'
+                if (!testmoRoot || !testmoProject) {
+                    echo 'TESTMO_URL / TESTMO_PROJECT_ID not set in Jenkins — skipping the Testmo submit.'
                 } else if (!fileExists('test-results/junit.xml')) {
                     echo 'No JUnit results — skipping the Testmo submit.'
                 } else {
@@ -203,19 +205,23 @@ pipeline {
                     try {
                         // IN_* name dodges Jenkins' sensitive-name filter (see ci/README.md).
                         withCredentials([string(credentialsId: 'testmo-token', variable: 'IN_TESTMO_CODE')]) {
-                            // The stage's `image` variable is out of scope here.
-                            docker.image('cloudcasa-playwright-tests').inside {
-                                sh '''
-                                    set -eu
-                                    ln -sfn /app/node_modules node_modules
-                                    export TESTMO_TOKEN="$IN_TESTMO_CODE"
-                                    npx testmo automation:run:submit \
-                                        --instance "$TESTMO_URL" \
-                                        --project-id "$TESTMO_PROJECT_ID" \
-                                        --name "$JOB_NAME #$BUILD_NUMBER" \
-                                        --source playwright \
-                                        --results test-results/junit.xml
-                                '''
+                            // docker.inside() passes in a computed env delta, not the whole environment.
+                            withEnv(["TESTMO_URL=${testmoRoot}",
+                                     "TESTMO_PROJECT_ID=${testmoProject}"]) {
+                                // The stage's `image` variable is out of scope here.
+                                docker.image('cloudcasa-playwright-tests').inside {
+                                    sh '''
+                                        set -eu
+                                        ln -sfn /app/node_modules node_modules
+                                        export TESTMO_TOKEN="$IN_TESTMO_CODE"
+                                        npx testmo automation:run:submit \
+                                            --instance "$TESTMO_URL" \
+                                            --project-id "$TESTMO_PROJECT_ID" \
+                                            --name "$JOB_NAME #$BUILD_NUMBER" \
+                                            --source playwright \
+                                            --results test-results/junit.xml
+                                    '''
+                                }
                             }
                         }
                         echo 'Testmo run submitted.'

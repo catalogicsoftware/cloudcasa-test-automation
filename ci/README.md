@@ -40,6 +40,53 @@ section below for why.
   inward only, so this is the one path that may need the corporate proxy.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
+## Publish target variables
+
+The three publish targets are configured entirely through environment variables —
+the `Jenkinsfile` holds no addresses, so moving a host or switching a project is a
+Jenkins change, not a commit and a push.
+
+Set them in _Manage Jenkins → System → **Global properties** → Environment
+variables_. Node properties override those per agent. Folder-scoped variables
+need the Folder Properties plugin **and** a `withFolderProperties { }` wrapper in
+the pipeline, so they are not a drop-in alternative here — on a controller shared
+with jobs that use these names, prefix them instead.
+
+| Variable             | What it is                                                      | Value in use                       |
+| -------------------- | --------------------------------------------------------------- | ---------------------------------- |
+| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://172.24.3.150:5050`         |
+| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                    |
+| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us` |
+| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`           |
+| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                |
+| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                |
+
+The Testmo tenant and project do not exist yet, so those two stay unset and that
+step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.
+
+**An unset variable switches its step off**, which is also the kill switch: clear
+`TESTMO_URL` in Jenkins and the submit stops without touching the repo. Each step
+needs both of its variables, so a half-filled pair skips rather than failing
+against an incomplete address. Values are trimmed and any trailing slash is
+dropped, so a stray one is not an outage.
+
+Nexus is the exception: unsetting it does not stop publishing, it redirects to
+archiving `playwright-report/**` + `test-results/**` **on the controller** — which
+is the one thing the rest of this setup avoids. Turning Nexus off entirely means
+deleting that branch of the `post` block.
+
+What the console prints when a step is off:
+
+```
+ALLURE_URL / ALLURE_PROJECT_ID not set in Jenkins — skipping the Allure publish.
+NEXUS_URL / NEXUS_REPORTS_REPO not set in Jenkins. Falling back to archiving on the controller so reports are not lost during setup.
+TESTMO_URL / TESTMO_PROJECT_ID not set in Jenkins — skipping the Testmo submit.
+```
+
+The "value in use" column exists so a fresh controller can be brought up without
+archaeology — it is not read by anything, so treat Jenkins as the source of truth
+if the two disagree.
+
 ## Required credentials
 
 Create each as a **Secret text** credential in Jenkins
@@ -117,9 +164,9 @@ Three publish targets, all off the controller:
   branch of the `post` block if that isn't wanted.
 - **Nothing is kept on the controller.** No archived artifacts, no Allure
   results, no trend history.
-- **Placeholder escape hatch.** Each publish step is skipped when its URL env var
-  is reset to a `REPLACE-ME` placeholder; for Nexus that also re-enables
-  archiving `playwright-report/**` + `test-results/**` on the controller.
+- **Each publish step is off while its variables are unset** (see "Publish target
+  variables"); for Nexus that also re-enables archiving `playwright-report/**` +
+  `test-results/**` on the controller.
 - **A publish failure marks the build UNSTABLE rather than failing it** — the
   suite's own verdict is what matters, and a broken upload must not read as a
   test failure.
@@ -234,12 +281,8 @@ PUT per file) to a Nexus `raw (hosted)` repo. Final URL:
 `<NEXUS_URL>/repository/<repo>/<job>/<build>/index.html` — reachable, but see
 the CSP note above.
 
-**Current wiring** (set in the `environment` block of the `Jenkinsfile`):
-
-| Setting              | Value                              |
-| -------------------- | ---------------------------------- |
-| `NEXUS_URL`          | `https://cc-nexus.ad.catalogic.us` |
-| `NEXUS_REPORTS_REPO` | `cloudcasa-test-reports`           |
+`NEXUS_URL` and `NEXUS_REPORTS_REPO` come from Jenkins, not from the repo — see
+"Publish target variables".
 
 **Repo settings** (Nexus UI → _Settings → Repositories_), if it ever needs
 recreating as a `raw (hosted)` repository:
@@ -252,9 +295,7 @@ recreating as a `raw (hosted)` repository:
 
 Also required: a **username/password** (service account or token) Jenkins
 credential with **write** access to the repo, ID `nexus-creds`, plus the
-`internal-ca-cert` Secret file for the HTTPS chain. `NEXUS_URL` must have no
-trailing slash; while it contains `REPLACE-ME` the upload step is skipped and the
-rest of the pipeline runs normally.
+`internal-ca-cert` Secret file for the HTTPS chain.
 
 The controller node must have `curl` available (standard on most agents).
 
@@ -346,6 +387,10 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   `testmo-token` credential is missing, the key lacks write access, `TESTMO_PROJECT_ID`
   points at a project the key cannot see, or the node has no outbound HTTPS to
   `*.testmo.net`.
+- **A publish step reports "not set in Jenkins" and skips.** The variable is missing
+  from _Global properties_ (or misspelled there), or a folder/node property with the
+  same name overrides it with an empty value. Both variables of the pair are
+  required — see "Publish target variables".
 - **`No JUnit results — skipping the Testmo submit.`** `test-results/junit.xml` was
   never written, which means the `Test` stage did not get as far as running tests —
   look for an image build or workspace-mount failure above, not at Testmo.
