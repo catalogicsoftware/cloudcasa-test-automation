@@ -25,7 +25,6 @@ pipeline {
                         string(credentialsId: 'cloudcasa-testmail-api-key', variable: 'IN_TESTMAIL_APICODE'),
                         string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
                         string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
-                        string(credentialsId: 'cloudcasa-registered-user-password', variable: 'IN_REG_PASS'),
                         string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
                     ]) {
                         withEnv(['CI=true']) {
@@ -42,7 +41,6 @@ pipeline {
                                     export TESTMAIL_API_KEY="$IN_TESTMAIL_APICODE"
                                     export CLOUDCASA_API_URL="$IN_API_URL"
                                     export CLOUDCASA_API_TOKEN="$IN_API_CODE"
-                                    export REGISTERED_USER_PASSWORD="$IN_REG_PASS"
                                     export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
                                     npx playwright test
                                 '''
