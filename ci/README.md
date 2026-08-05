@@ -100,17 +100,16 @@ Create each as a **Secret text** credential in Jenkins
 (_Manage Jenkins → Credentials_); the ID is referenced in the `withCredentials([...])`
 block of the `Jenkinsfile`. Current IDs used:
 
-| Env var                    | Jenkins credential ID                |
-| -------------------------- | ------------------------------------ |
-| `BASE_URL`                 | `cloudcasa-base-url`                 |
-| `CC_EMAIL`                 | `cloudcasa-cc-email`                 |
-| `CC_PASSWORD`              | `cloudcasa-cc-password`              |
-| `TESTMAIL_NAMESPACE`       | `cloudcasa-testmail-namespace`       |
-| `TESTMAIL_API_KEY`         | `cloudcasa-testmail-api-key`         |
-| `CLOUDCASA_API_URL`        | `cloudcasa-api-url`                  |
-| `CLOUDCASA_API_TOKEN`      | `cloudcasa-api-token`                |
-| `REGISTERED_USER_PASSWORD` | `cloudcasa-registered-user-password` |
-| `TESTMAIL_API_URL`         | `cloudcasa-testmail-api-url`         |
+| Env var               | Jenkins credential ID          |
+| --------------------- | ------------------------------ |
+| `BASE_URL`            | `cloudcasa-base-url`           |
+| `CC_EMAIL`            | `cloudcasa-cc-email`           |
+| `CC_PASSWORD`         | `cloudcasa-cc-password`        |
+| `TESTMAIL_NAMESPACE`  | `cloudcasa-testmail-namespace` |
+| `TESTMAIL_API_KEY`    | `cloudcasa-testmail-api-key`   |
+| `CLOUDCASA_API_URL`   | `cloudcasa-api-url`            |
+| `CLOUDCASA_API_TOKEN` | `cloudcasa-api-token`          |
+| `TESTMAIL_API_URL`    | `cloudcasa-testmail-api-url`   |
 
 `TESTMAIL_API_URL` is required, despite `.env.example` documenting a default
 value — `utils/testmail.ts` reads `process.env.TESTMAIL_API_URL` directly with
@@ -348,7 +347,7 @@ any Jenkins setup where the agent runs the suite in a Docker container.
   are visible via `docker inspect`/`docker top` to anyone with host docker
   access, which would defeat Jenkins' own console masking). Since this app's
   env-var contract requires exactly those names (`CLOUDCASA_API_TOKEN`,
-  `CC_PASSWORD`, `TESTMAIL_API_KEY`, `REGISTERED_USER_PASSWORD`), the
+  `CC_PASSWORD`, `TESTMAIL_API_KEY`), the
   `Jenkinsfile` binds credentials to innocuous placeholder names (`IN_*`) and
   `export`s the real names from inside the container's own `sh` step, where
   the filter no longer applies.
@@ -380,9 +379,6 @@ safe.directory <path>` for both the repo's top-level path _and_ its literal
   `TypeError: Failed to parse URL from undefined?apikey=...`. See "Required
   credentials" above — despite what `.env.example` implies, there is no
   code-level default.
-- **Missing `REGISTERED_USER_PASSWORD`** — acceptable if left blank; only the
-  test(s) that depend on a pre-registered user's password fail, with a clear
-  assertion error, not a stack/mechanism failure.
 - **`curl: (60) SSL certificate problem: self-signed certificate in certificate
 chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   (AD) CA, which the agent doesn't trust; `curl` has its own trust store, so a
