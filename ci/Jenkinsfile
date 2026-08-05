@@ -1,0 +1,247 @@
+// Runs the Playwright suite in the ci/Dockerfile image; setup in ci/README.md.
+// Publish targets come from Jenkins env vars so they change without a push; unset means the step is off (see ci/README.md).
+pipeline {
+    agent any
+
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    stages {
+        stage('Test') {
+            steps {
+                script {
+                    // On the node and before the build: if the stage dies early, post must find nothing to publish.
+                    sh 'rm -rf allure-results playwright-report test-results'
+                    def image = docker.build('cloudcasa-playwright-tests', '-f ci/Dockerfile .')
+                    // IN_* names dodge Jenkins' sensitive-name filter (see ci/README.md).
+                    withCredentials([
+                        string(credentialsId: 'cloudcasa-base-url', variable: 'IN_BASE_URL'),
+                        string(credentialsId: 'cloudcasa-cc-email', variable: 'IN_CC_EMAIL'),
+                        string(credentialsId: 'cloudcasa-cc-password', variable: 'IN_CC_PASS'),
+                        string(credentialsId: 'cloudcasa-testmail-namespace', variable: 'IN_TESTMAIL_NS'),
+                        string(credentialsId: 'cloudcasa-testmail-api-key', variable: 'IN_TESTMAIL_APICODE'),
+                        string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
+                        string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
+                        string(credentialsId: 'cloudcasa-registered-user-password', variable: 'IN_REG_PASS'),
+                        string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
+                    ]) {
+                        withEnv(['CI=true']) {
+                            // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
+                            image.inside('--ipc=host') {
+                                // The workspace isn't the image's /app, so its node_modules aren't resolvable.
+                                // rm first: onto a real directory, ln would nest the link inside it and exit 0.
+                                sh 'rm -rf node_modules && ln -s /app/node_modules node_modules'
+                                sh '''
+                                    export BASE_URL="$IN_BASE_URL"
+                                    export CC_EMAIL="$IN_CC_EMAIL"
+                                    export CC_PASSWORD="$IN_CC_PASS"
+                                    export TESTMAIL_NAMESPACE="$IN_TESTMAIL_NS"
+                                    export TESTMAIL_API_KEY="$IN_TESTMAIL_APICODE"
+                                    export CLOUDCASA_API_URL="$IN_API_URL"
+                                    export CLOUDCASA_API_TOKEN="$IN_API_CODE"
+                                    export REGISTERED_USER_PASSWORD="$IN_REG_PASS"
+                                    export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
+                                    npx playwright test
+                                '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Publishes to Allure (browsable), Nexus (artifact store) and Testmo (run history); see ci/README.md.
+            script {
+                // Set once at the end so neither step clobbers the other's link.
+                // Bare URLs, not <a> tags: Jenkins' default markup formatter escapes HTML in the description.
+                def links = []
+
+                // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
+                def allureRoot = env.ALLURE_URL?.trim()?.replaceAll('/+$', '')
+                def allureProject = env.ALLURE_PROJECT_ID?.trim()
+                def nexusRoot = env.NEXUS_URL?.trim()?.replaceAll('/+$', '')
+                def nexusRepo = env.NEXUS_REPORTS_REPO?.trim()?.replaceAll('/+$', '')
+                def testmoRoot = env.TESTMO_URL?.trim()?.replaceAll('/+$', '')
+                def testmoProject = env.TESTMO_PROJECT_ID?.trim()
+
+                // --- 1. Allure ---
+                if (!allureRoot || !allureProject) {
+                    echo 'ALLURE_URL / ALLURE_PROJECT_ID not set in Jenkins — skipping the Allure publish.'
+                } else if (!fileExists('allure-results')) {
+                    echo 'No allure-results/ — skipping the Allure publish.'
+                } else {
+                    // A publish failure must not read as a test failure — UNSTABLE, not FAILED.
+                    try {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'allure-creds',
+                            usernameVariable: 'ALLURE_USER',
+                            passwordVariable: 'ALLURE_PASS')]) {
+                            // ALLURE_PROJECT_ID is passed explicitly rather than read from the ambient env.
+                            withEnv(["ALLURE_BASE=${allureRoot}/allure-docker-service",
+                                     "ALLURE_PROJECT_ID=${allureProject}"]) {
+                                sh '''
+                                    set -eu
+
+                                    # The cookie jar is a live session token — drop it however this step exits.
+                                    trap 'rm -f allure-cookies.txt allure-generate.json' EXIT
+
+                                    # Don't inherit the previous build's URL — the workspace is reused.
+                                    rm -f allure-report-url.txt
+
+                                    # Body via stdin: the password reaches neither an argument list nor the disk.
+                                    printf '{"username":"%s","password":"%s"}' \
+                                        "$ALLURE_USER" "$ALLURE_PASS" \
+                                      | curl -sSf -X POST "$ALLURE_BASE/login" \
+                                            -H 'Content-Type: application/json' \
+                                            -d @- -c allure-cookies.txt > /dev/null
+
+                                    export CSRF="$(awk -F'\\t' '/csrf_access_token/ {print $NF}' allure-cookies.txt)"
+                                    [ -n "$CSRF" ] || { echo "Allure login failed - no CSRF cookie"; exit 1; }
+
+                                    # Batched: per-file is slow, all-at-once can be hundreds of MB; UUID filenames make the unquoted $args safe.
+                                    # -r: an empty allure-results/ would otherwise POST zero files and fail on the 4xx.
+                                    export ALLURE_BASE ALLURE_PROJECT_ID
+                                    find allure-results -maxdepth 1 -type f -print0 \
+                                      | xargs -0 -r -n 20 sh -c '
+                                            args=""
+                                            for f in "$@"; do args="$args -F files[]=@$f"; done
+                                            curl -sSf -b allure-cookies.txt \
+                                                -H "X-CSRF-TOKEN: $CSRF" $args \
+                                                "$ALLURE_BASE/send-results?project_id=$ALLURE_PROJECT_ID&force_project_creation=true" \
+                                                > /dev/null
+                                        ' _
+
+                                    # --data-urlencode: JOB_NAME may contain spaces or slashes.
+                                    # BUILD_URL is unset until the controller's root URL is configured.
+                                    curl -sSf -b allure-cookies.txt -H "X-CSRF-TOKEN: $CSRF" --get \
+                                        --data-urlencode "project_id=$ALLURE_PROJECT_ID" \
+                                        --data-urlencode "execution_name=$JOB_NAME #$BUILD_NUMBER" \
+                                        --data-urlencode "execution_from=${BUILD_URL:-}" \
+                                        --data-urlencode "execution_type=jenkins" \
+                                        "$ALLURE_BASE/generate-report" > allure-generate.json
+
+                                    sed -n 's/.*"report_url"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' \
+                                        allure-generate.json | head -1 > allure-report-url.txt
+                                '''
+                            }
+                        }
+                        // This build's own report; `latest` would drift to the newest one.
+                        def allureUrl = fileExists('allure-report-url.txt')
+                            ? readFile('allure-report-url.txt').trim() : ''
+                        if (allureUrl) {
+                            echo "Allure report: ${allureUrl}"
+                            links << "Allure report: ${allureUrl}"
+                        } else {
+                            // No link at all beats a `latest` one that drifts to a newer build's report.
+                            echo 'Allure results published, but report_url could not be parsed.'
+                        }
+                    } catch (err) {
+                        echo "Allure publish failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                // --- 2. Nexus ---
+                if (!nexusRoot || !nexusRepo) {
+                    echo 'NEXUS_URL / NEXUS_REPORTS_REPO not set in Jenkins. ' +
+                         'Falling back to archiving on the controller so reports ' +
+                         'are not lost during setup.'
+                    // Wrapped like the uploads: this is still a publish step, not a test verdict.
+                    try {
+                        archiveArtifacts(
+                            artifacts: 'playwright-report/**, test-results/**',
+                            allowEmptyArchive: true,
+                            fingerprint: true
+                        )
+                    } catch (err) {
+                        echo "Controller archiving failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                } else if (!fileExists('playwright-report')) {
+                    // Without this the steps below would report a publish and link a 404.
+                    echo 'No playwright-report/ — skipping the Nexus publish.'
+                } else {
+                    // One PUT per file, so each stays fetchable (repo: Content Disposition = Inline).
+                    // A space in JOB_NAME would make the URL malformed; slashes stay so folders nest.
+                    def jobPath = env.JOB_NAME.replaceAll('[^A-Za-z0-9._/-]', '-')
+                    def reportBase = "${nexusRoot}/repository/${nexusRepo}/${jobPath}/${env.BUILD_NUMBER}"
+                    // Same as Allure above: a broken upload must not fail the build.
+                    try {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'nexus-creds',
+                                usernameVariable: 'NEXUS_USER',
+                                passwordVariable: 'NEXUS_PASS'),
+                            // Nexus is behind an internal CA the agents don't trust (see ci/README.md).
+                            file(credentialsId: 'internal-ca-cert', variable: 'CA_BUNDLE'),
+                        ]) {
+                            withEnv(["REPORT_BASE=${reportBase}"]) {
+                                sh '''
+                                    set -eu
+                                    cd playwright-report
+                                    find . -type f | while read -r f; do
+                                        rel="${f#./}"
+                                        curl -sSf --cacert "$CA_BUNDLE" -u "$NEXUS_USER:$NEXUS_PASS" \
+                                            --upload-file "$f" "$REPORT_BASE/$rel"
+                                    done
+                                '''
+                            }
+                        }
+                        echo "Playwright report files published: ${reportBase}/"
+                        links << "Playwright files (Nexus): ${reportBase}/index.html"
+                    } catch (err) {
+                        echo "Nexus publish failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                // --- 3. Testmo ---
+                if (!testmoRoot || !testmoProject) {
+                    echo 'TESTMO_URL / TESTMO_PROJECT_ID not set in Jenkins — skipping the Testmo submit.'
+                } else if (!fileExists('test-results/junit.xml')) {
+                    echo 'No JUnit results — skipping the Testmo submit.'
+                } else {
+                    // Same as the steps above: a broken submit must not fail the build.
+                    try {
+                        // IN_* name dodges Jenkins' sensitive-name filter (see ci/README.md).
+                        withCredentials([string(credentialsId: 'testmo-token', variable: 'IN_TESTMO_CODE')]) {
+                            // docker.inside() passes in a computed env delta, not the whole environment.
+                            withEnv(["TESTMO_URL=${testmoRoot}",
+                                     "TESTMO_PROJECT_ID=${testmoProject}"]) {
+                                // The stage's `image` variable is out of scope here.
+                                docker.image('cloudcasa-playwright-tests').inside {
+                                    sh '''
+                                        set -eu
+                                        rm -rf node_modules
+                                        ln -s /app/node_modules node_modules
+                                        export TESTMO_TOKEN="$IN_TESTMO_CODE"
+                                        npx testmo automation:run:submit \
+                                            --instance "$TESTMO_URL" \
+                                            --project-id "$TESTMO_PROJECT_ID" \
+                                            --name "$JOB_NAME #$BUILD_NUMBER" \
+                                            --source playwright \
+                                            --results test-results/junit.xml
+                                    '''
+                                }
+                            }
+                        }
+                        echo 'Testmo run submitted.'
+                    } catch (err) {
+                        echo "Testmo submit failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                if (links) {
+                    currentBuild.description = links.join(' | ')
+                }
+            }
+        }
+    }
+}

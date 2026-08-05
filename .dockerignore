@@ -1,0 +1,24 @@
+# Keep the docker build context small and free of secrets/artifacts.
+node_modules
+playwright-report
+test-results
+allure-results
+allure-report
+allure-history.jsonl
+
+.env
+.git
+.gitignore
+.vscode
+.claude
+.husky
+
+docs
+specs
+
+# Local-only Jenkins-in-Docker stack — never part of the test image.
+ci/local
+
+*.log
+Dockerfile
+.dockerignore
