@@ -258,8 +258,9 @@ login while writes stay authenticated.
 
 **Publish flow in the `post` block:** `POST /login` (cookie jar + CSRF token) →
 `POST /send-results` in batches of 20 files → `GET /generate-report`, whose
-response carries the `report_url` for this build. The build description links
-there. Batching is deliberate: one request per file is needlessly slow, and one
+response carries the `report_url` for this build, which the build description
+shows as a bare URL — Jenkins' default markup formatter is Plain text, so an
+`<a>` tag would render as literal markup instead of a link. Batching is deliberate: one request per file is needlessly slow, and one
 request for all of them can carry hundreds of MB of traces and videos.
 
 Gotchas worth keeping in mind when touching that host:
@@ -313,9 +314,11 @@ The controller node must have `curl` available (standard on most agents).
 
 ## Maintenance
 
-- **Keep the image tag in sync with Playwright.** When `@playwright/test` is
-  upgraded in `package.json`, bump the `FROM mcr.microsoft.com/playwright:vX.Y.Z-noble`
-  tag in `Dockerfile` to the matching version.
+- **Keep the image tag in sync with Playwright.** `@playwright/test` is pinned to
+  an exact version in `package.json` so a routine `npm update` cannot move it out
+  from under the image; upgrading means editing that pin **and** the
+  `FROM mcr.microsoft.com/playwright:vX.Y.Z-noble` tag in `Dockerfile` together.
+  A mismatch breaks only CI, with `Executable doesn't exist at /ms-playwright/…`.
 - **After an `allure-playwright` major upgrade, check the Allure host still
   renders the results** — the image ships Allure CLI 2.44, the reporter is on 3.x,
   and the compatibility is the results format, not a guarantee.

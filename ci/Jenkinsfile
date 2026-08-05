@@ -32,7 +32,8 @@ pipeline {
                             // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
                             image.inside('--ipc=host') {
                                 // The workspace isn't the image's /app, so its node_modules aren't resolvable.
-                                sh 'ln -sfn /app/node_modules node_modules'
+                                // rm first: onto a real directory, ln would nest the link inside it and exit 0.
+                                sh 'rm -rf node_modules && ln -s /app/node_modules node_modules'
                                 sh '''
                                     export BASE_URL="$IN_BASE_URL"
                                     export CC_EMAIL="$IN_CC_EMAIL"
@@ -58,6 +59,7 @@ pipeline {
             // Publishes to Allure (browsable), Nexus (artifact store) and Testmo (run history); see ci/README.md.
             script {
                 // Set once at the end so neither step clobbers the other's link.
+                // Bare URLs, not <a> tags: Jenkins' default markup formatter escapes HTML in the description.
                 def links = []
 
                 // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
@@ -103,9 +105,10 @@ pipeline {
                                     [ -n "$CSRF" ] || { echo "Allure login failed - no CSRF cookie"; exit 1; }
 
                                     # Batched: per-file is slow, all-at-once can be hundreds of MB; UUID filenames make the unquoted $args safe.
+                                    # -r: an empty allure-results/ would otherwise POST zero files and fail on the 4xx.
                                     export ALLURE_BASE ALLURE_PROJECT_ID
                                     find allure-results -maxdepth 1 -type f -print0 \
-                                      | xargs -0 -n 20 sh -c '
+                                      | xargs -0 -r -n 20 sh -c '
                                             args=""
                                             for f in "$@"; do args="$args -F files[]=@$f"; done
                                             curl -sSf -b allure-cookies.txt \
@@ -133,7 +136,7 @@ pipeline {
                             ? readFile('allure-report-url.txt').trim() : ''
                         if (allureUrl) {
                             echo "Allure report: ${allureUrl}"
-                            links << "<a href=\"${allureUrl}\">Allure report</a>"
+                            links << "Allure report: ${allureUrl}"
                         } else {
                             // No link at all beats a `latest` one that drifts to a newer build's report.
                             echo 'Allure results published, but report_url could not be parsed.'
@@ -160,6 +163,9 @@ pipeline {
                         echo "Controller archiving failed: ${err}"
                         currentBuild.result = 'UNSTABLE'
                     }
+                } else if (!fileExists('playwright-report')) {
+                    // Without this the steps below would report a publish and link a 404.
+                    echo 'No playwright-report/ — skipping the Nexus publish.'
                 } else {
                     // One PUT per file, so each stays fetchable (repo: Content Disposition = Inline).
                     // A space in JOB_NAME would make the URL malformed; slashes stay so folders nest.
@@ -178,10 +184,6 @@ pipeline {
                             withEnv(["REPORT_BASE=${reportBase}"]) {
                                 sh '''
                                     set -eu
-                                    if [ ! -d playwright-report ]; then
-                                        echo "No playwright-report/ — nothing to upload."
-                                        exit 0
-                                    fi
                                     cd playwright-report
                                     find . -type f | while read -r f; do
                                         rel="${f#./}"
@@ -192,7 +194,7 @@ pipeline {
                             }
                         }
                         echo "Playwright report files published: ${reportBase}/"
-                        links << "<a href=\"${reportBase}/index.html\">Playwright files (Nexus)</a>"
+                        links << "Playwright files (Nexus): ${reportBase}/index.html"
                     } catch (err) {
                         echo "Nexus publish failed: ${err}"
                         currentBuild.result = 'UNSTABLE'
@@ -216,7 +218,8 @@ pipeline {
                                 docker.image('cloudcasa-playwright-tests').inside {
                                     sh '''
                                         set -eu
-                                        ln -sfn /app/node_modules node_modules
+                                        rm -rf node_modules
+                                        ln -s /app/node_modules node_modules
                                         export TESTMO_TOKEN="$IN_TESTMO_CODE"
                                         npx testmo automation:run:submit \
                                             --instance "$TESTMO_URL" \
