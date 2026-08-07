@@ -1,5 +1,7 @@
 // Runs the Playwright suite in the ci/Dockerfile image; setup in ci/README.md.
 // Publish targets come from Jenkins env vars so they change without a push; unset means the step is off (see ci/README.md).
+import groovy.json.JsonOutput
+
 pipeline {
     agent any
 
@@ -59,6 +61,8 @@ pipeline {
                 // Set once at the end so neither step clobbers the other's link.
                 // Bare URLs, not <a> tags: Jenkins' default markup formatter escapes HTML in the description.
                 def links = []
+                // Declared here, not in the Allure branch — the Teams step below reads it.
+                def allureUrl = ''
 
                 // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
                 def allureRoot = env.ALLURE_URL?.trim()?.replaceAll('/+$', '')
@@ -130,7 +134,7 @@ pipeline {
                             }
                         }
                         // This build's own report; `latest` would drift to the newest one.
-                        def allureUrl = fileExists('allure-report-url.txt')
+                        allureUrl = fileExists('allure-report-url.txt')
                             ? readFile('allure-report-url.txt').trim() : ''
                         if (allureUrl) {
                             echo "Allure report: ${allureUrl}"
@@ -232,6 +236,71 @@ pipeline {
                         echo 'Testmo run submitted.'
                     } catch (err) {
                         echo "Testmo submit failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                // --- 4. Teams ---
+                if (env.TEAMS_NOTIFY?.trim() != 'true') {
+                    echo 'TEAMS_NOTIFY not set to true in Jenkins — skipping the Teams notification.'
+                } else {
+                    // Same as the steps above: a broken notification must not fail the build.
+                    try {
+                        // Read last so it reflects an UNSTABLE set by a failed publish above.
+                        def result = currentBuild.currentResult
+                        def colour = result == 'SUCCESS' ? 'good'
+                            : (result == 'UNSTABLE' ? 'warning' : 'attention')
+
+                        // .toString(): JsonOutput would otherwise serialize the GString by its internals.
+                        def body = [
+                            [type: 'TextBlock', weight: 'Bolder', size: 'Medium', wrap: true,
+                             text: "CloudCasa E2E — ${env.JOB_NAME} #${env.BUILD_NUMBER}".toString()],
+                            [type: 'TextBlock', color: colour, wrap: true,
+                             text: "Result: ${result}".toString()],
+                        ]
+                        def actions = []
+                        if (allureUrl) {
+                            actions << [type: 'Action.OpenUrl', title: 'Open Allure report', url: allureUrl]
+                        } else {
+                            body << [type: 'TextBlock', wrap: true,
+                                     text: 'Allure report was not published — see the build log.']
+                            // BUILD_URL is unset until the controller's root URL is configured.
+                            if (env.BUILD_URL) {
+                                actions << [type: 'Action.OpenUrl', title: 'Open build', url: env.BUILD_URL]
+                            }
+                        }
+
+                        // Workflows needs the message envelope, not a bare card (see ci/README.md).
+                        writeFile file: 'teams-card.json', text: JsonOutput.toJson([
+                            type: 'message',
+                            attachments: [[
+                                contentType: 'application/vnd.microsoft.card.adaptive',
+                                contentUrl: null,
+                                content: [
+                                    type: 'AdaptiveCard',
+                                    '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+                                    version: '1.4',
+                                    body: body,
+                                    actions: actions,
+                                ],
+                            ]],
+                        ])
+
+                        withCredentials([string(credentialsId: 'teams-webhook-url', variable: 'TEAMS_HOOK')]) {
+                            sh '''
+                                set -eu
+
+                                # The workspace is reused — don't leave this build's card for the next one.
+                                trap 'rm -f teams-card.json' EXIT
+
+                                curl -sSf -X POST "$TEAMS_HOOK" \
+                                    -H 'Content-Type: application/json' \
+                                    --data-binary @teams-card.json > /dev/null
+                            '''
+                        }
+                        echo 'Teams notification sent.'
+                    } catch (err) {
+                        echo "Teams notification failed: ${err}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
