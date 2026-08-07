@@ -251,7 +251,6 @@ pipeline {
                         def colour = result == 'SUCCESS' ? 'good'
                             : (result == 'UNSTABLE' ? 'warning' : 'attention')
 
-                        // .toString(): JsonOutput would otherwise serialize the GString by its internals.
                         def body = [
                             [type: 'TextBlock', weight: 'Bolder', size: 'Medium', wrap: true,
                              text: "CloudCasa E2E — ${env.JOB_NAME} #${env.BUILD_NUMBER}".toString()],
@@ -270,32 +269,34 @@ pipeline {
                             }
                         }
 
-                        // Workflows needs the message envelope, not a bare card (see ci/README.md).
-                        writeFile file: 'teams-card.json', text: JsonOutput.toJson([
-                            type: 'message',
-                            attachments: [[
-                                contentType: 'application/vnd.microsoft.card.adaptive',
-                                contentUrl: null,
-                                content: [
-                                    type: 'AdaptiveCard',
-                                    '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
-                                    version: '1.4',
-                                    body: body,
-                                    actions: actions,
-                                ],
-                            ]],
-                        ])
-
                         withCredentials([string(credentialsId: 'teams-webhook-url', variable: 'TEAMS_HOOK')]) {
+                            // Workflows needs the message envelope, not a bare card (see ci/README.md).
+                            writeFile file: 'teams-card.json', encoding: 'UTF-8', text: JsonOutput.toJson([
+                                type: 'message',
+                                attachments: [[
+                                    contentType: 'application/vnd.microsoft.card.adaptive',
+                                    contentUrl: null,
+                                    content: [
+                                        type: 'AdaptiveCard',
+                                        '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+                                        version: '1.4',
+                                        body: body,
+                                        actions: actions,
+                                    ],
+                                ]],
+                            ])
+
                             sh '''
                                 set -eu
 
                                 # The workspace is reused — don't leave this build's card for the next one.
                                 trap 'rm -f teams-card.json' EXIT
 
-                                curl -sSf -X POST "$TEAMS_HOOK" \
-                                    -H 'Content-Type: application/json' \
-                                    --data-binary @teams-card.json > /dev/null
+                                # -K -: same stdin pattern as the Allure login — the URL never reaches argv or disk.
+                                printf 'url = "%s"\\n' "$TEAMS_HOOK" \
+                                  | curl -sSf -K - -X POST \
+                                        -H 'Content-Type: application/json' \
+                                        --data-binary @teams-card.json > /dev/null
                             '''
                         }
                         echo 'Teams notification sent.'

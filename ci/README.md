@@ -50,9 +50,11 @@ for the `post` block to publish as this build's results.
 
 ## Publish target variables
 
-The three publish targets are configured entirely through environment variables —
+The four publish targets are each switched on or off through environment variables —
 the `Jenkinsfile` holds no addresses, so moving a host or switching a project is a
-Jenkins change, not a commit and a push.
+Jenkins change, not a commit and a push. Teams is the exception on the address itself:
+its switch (`TEAMS_NOTIFY`) is a variable, but its webhook URL is a credential, not a
+variable (see below).
 
 Set them in _Manage Jenkins → System → **Global properties** → Environment
 variables_. Node properties override those per agent. Folder-scoped variables
@@ -125,10 +127,10 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
-Four more credentials are used by the publish steps in the `post` block. The
+Five more credentials are used by the publish steps in the `post` block. The
 Allure and Nexus ones run on the node; the Testmo one runs inside the test image,
 which is why its key needs the `IN_*` indirection described under Troubleshooting.
-Two are **Username with password**, one a **Secret file** and one **Secret text**:
+Two are **Username with password**, one a **Secret file** and two **Secret text**:
 
 | Credential ID       | Kind            | What it is                                                                                                                |
 | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -181,7 +183,7 @@ the flow's run history in Power Automate.
 
 ## Reports
 
-Three publish targets, all off the controller:
+Four publish targets, all off the controller:
 
 | Target                                  | What it is                                                     | Renders?                  |
 | --------------------------------------- | -------------------------------------------------------------- | ------------------------- |
@@ -216,8 +218,9 @@ Three publish targets, all off the controller:
 - **Teams gets one card per build**, sent last in the `post` block so it reports the final
   verdict including an `UNSTABLE` set by a failed publish. It carries the build result and this
   build's Allure link only — no Nexus, no Testmo, no test counters. If Allure was not published
-  the card still goes out, linking the Jenkins build instead: silence would be indistinguishable
-  from the pipeline never having run.
+  the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
+  and carries no link at all otherwise — silence would be indistinguishable from the pipeline
+  never having run.
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
 > so a local `npm test` and a CI run produce the same results. `allure-playwright`
