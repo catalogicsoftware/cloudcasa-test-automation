@@ -59,14 +59,14 @@ need the Folder Properties plugin **and** a `withFolderProperties { }` wrapper i
 the pipeline, so they are not a drop-in alternative here — on a controller shared
 with jobs that use these names, prefix them instead.
 
-| Variable             | What it is                                                      | Value in use                       |
-| -------------------- | --------------------------------------------------------------- | ---------------------------------- |
-| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://172.24.3.150:5050`         |
-| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                    |
-| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us` |
-| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`           |
-| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                |
-| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                |
+| Variable             | What it is                                                      | Value in use                            |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://cc-allure.ad.catalogic.us:5050` |
+| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                         |
+| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us`      |
+| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`                |
+| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                     |
+| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                     |
 
 The Testmo tenant and project do not exist yet, so those two stay unset and that
 step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.
@@ -240,14 +240,16 @@ attachments live on that host's own disk.
 
 A dedicated Ubuntu 24 VM, containers only. Not domain-joined — reached by IP.
 
-| Thing             | Value                                                      |
-| ----------------- | ---------------------------------------------------------- |
-| API / report      | `http://172.24.3.150:5050/allure-docker-service`           |
-| UI (project list) | `http://172.24.3.150:5252`                                 |
-| Project ID        | `cloudcasa-e2e` — must stay stable, it carries the history |
-| Compose file      | `/opt/allure/docker-compose.yml` + `/opt/allure/.env`      |
-| Data              | `/var/lib/allure/projects` — dedicated 100 GB ext4 disk    |
-| Images            | `frankescobar/allure-docker-service:2.44.0` + `-ui`        |
+| Thing             | Value                                                         |
+| ----------------- | ------------------------------------------------------------- |
+| API / report      | `http://cc-allure.ad.catalogic.us:5050/allure-docker-service` |
+| UI (project list) | `http://cc-allure.ad.catalogic.us:5252`                       |
+| Project ID        | `cloudcasa-e2e` — must stay stable, it carries the history    |
+| Compose file      | `/opt/allure/docker-compose.yml` + `/opt/allure/.env`         |
+| Data              | `/var/lib/allure/projects` — dedicated 100 GB ext4 disk       |
+| Images            | `frankescobar/allure-docker-service:2.44.0` + `-ui`           |
+
+`ALLURE_URL` must stay on **5050**: the UI on 5252 is an Express server that answers `200` with `index.html` for every path, so a wrong port breaks the upload without an error.
 
 Notable service settings: `CHECK_RESULTS_EVERY_SECONDS=NONE` (the pipeline pushes
 and calls `generate-report` explicitly, so directory polling is pointless),
