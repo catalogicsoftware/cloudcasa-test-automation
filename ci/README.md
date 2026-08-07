@@ -238,7 +238,7 @@ attachments live on that host's own disk.
 
 ### Allure server
 
-A dedicated Ubuntu 24 VM, containers only. Not domain-joined — reached by IP.
+A dedicated Ubuntu 24 VM, containers only — reached by its `ad.catalogic.us` DNS name now, not the bare IP it used before.
 
 | Thing             | Value                                                         |
 | ----------------- | ------------------------------------------------------------- |
