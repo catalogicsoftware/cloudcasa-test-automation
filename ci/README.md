@@ -41,7 +41,7 @@ for the `post` block to publish as this build's results.
 ## Jenkins prerequisites
 
 - **Docker** available on the agent (the pipeline shells out to `docker build` / `docker run`).
-- **`curl`** available on the node (used to publish reports to Allure and Nexus).
+- **`curl`** available on the node (used to publish to Allure and Nexus and to post the Teams card).
 - **Network access from the node** to the Allure host (`ALLURE_URL`) and Nexus.
 - **Outbound HTTPS from the node** to `*.testmo.net` and to the Teams webhook's own host —
   read it out of the `teams-webhook-url` credential rather than assuming, because Power
@@ -54,9 +54,7 @@ for the `post` block to publish as this build's results.
 
 The four publish targets are each switched on or off through environment variables —
 the `Jenkinsfile` holds no addresses, so moving a host or switching a project is a
-Jenkins change, not a commit and a push. Teams is the exception on the address itself:
-its switch (`TEAMS_NOTIFY`) is a variable, but its webhook URL is a credential, not a
-variable (see below).
+Jenkins change, not a commit and a push.
 
 Set them in _Manage Jenkins → System → **Global properties** → Environment
 variables_. Node properties override those per agent. Folder-scoped variables
@@ -78,10 +76,10 @@ The Testmo tenant and project do not exist yet, so those two stay unset and that
 step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.
 
 **An unset variable switches its step off**, which is also the kill switch: clear
-`TESTMO_URL` in Jenkins and the submit stops without touching the repo. Each step
-needs both of its variables, so a half-filled pair skips rather than failing
-against an incomplete address. Values are trimmed and any trailing slash is
-dropped, so a stray one is not an outage.
+`TESTMO_URL` in Jenkins and the submit stops without touching the repo. The three
+targets with a variable pair need both of theirs, so a half-filled pair skips rather
+than failing against an incomplete address. Values are trimmed and any trailing slash
+is dropped, so a stray one is not an outage.
 
 Teams is the one target whose address is **not** here: the Workflows webhook URL embeds a
 signature token, so it is a credential (`teams-webhook-url`), and `TEAMS_NOTIFY` is the
@@ -130,8 +128,8 @@ run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
 Five more credentials are used by the publish steps in the `post` block. The
-Allure and Nexus ones run on the node; the Testmo one runs inside the test image,
-which is why its key needs the `IN_*` indirection described under Troubleshooting.
+Allure, Nexus and Teams ones run on the node; the Testmo one runs inside the test
+image, which is why its key needs the `IN_*` indirection described under Troubleshooting.
 Two are **Username with password**, one a **Secret file** and two **Secret text**:
 
 | Credential ID       | Kind            | What it is                                                                                                                |

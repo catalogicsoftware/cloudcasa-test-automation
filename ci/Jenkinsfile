@@ -56,7 +56,7 @@ pipeline {
 
     post {
         always {
-            // Publishes to Allure (browsable), Nexus (artifact store) and Testmo (run history); see ci/README.md.
+            // Publishes to Allure (browsable), Nexus (artifacts) and Testmo (run history), then notifies Teams; see ci/README.md.
             script {
                 // Set once at the end so neither step clobbers the other's link.
                 // Bare URLs, not <a> tags: Jenkins' default markup formatter escapes HTML in the description.
@@ -292,7 +292,7 @@ pipeline {
                                 # The workspace is reused — don't leave this build's card for the next one.
                                 trap 'rm -f teams-card.json' EXIT
 
-                                # -K -: same stdin pattern as the Allure login — the URL never reaches argv or disk.
+                                # -K -: the signed URL arrives on stdin, so it never reaches argv or disk.
                                 printf 'url = "%s"\\n' "$TEAMS_HOOK" \
                                   | curl -sSf -K - -X POST \
                                         -H 'Content-Type: application/json' \
