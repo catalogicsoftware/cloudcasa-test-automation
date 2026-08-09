@@ -43,9 +43,11 @@ for the `post` block to publish as this build's results.
 - **Docker** available on the agent (the pipeline shells out to `docker build` / `docker run`).
 - **`curl`** available on the node (used to publish reports to Allure and Nexus).
 - **Network access from the node** to the Allure host (`ALLURE_URL`) and Nexus.
-- **Outbound HTTPS from the node** to `*.testmo.net` and `*.logic.azure.com` (the Teams
-  webhook). Every other integration talks inward only, so these are the paths that may need
-  the corporate proxy.
+- **Outbound HTTPS from the node** to `*.testmo.net` and to the Teams webhook's own host —
+  read it out of the `teams-webhook-url` credential rather than assuming, because Power
+  Automate issues these on both `*.logic.azure.com` and `*.api.powerplatform.com` depending
+  on the tenant. Every other integration talks inward only, so these are the paths that may
+  need the corporate proxy.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
 ## Publish target variables
@@ -168,9 +170,12 @@ the host.
 ### Creating the Teams webhook
 
 In the target channel: **⋯ → Workflows → "Post to a channel when a webhook request is
-received"**, pick the team and channel, and copy the URL it generates
-(`https://prod-NN.<region>.logic.azure.com:443/workflows/...`). Store it as the
-`teams-webhook-url` Secret text credential.
+received"**, pick the team and channel, and copy the URL it generates. Store it as the
+`teams-webhook-url` Secret text credential. The host varies by tenant — older flows are on
+`prod-NN.<region>.logic.azure.com`, newer ones on
+`<env>.<region>.environment.api.powerplatform.com` — so the path in it, not the host, is what
+identifies it: `/triggers/manual/paths/invoke` with an `sp`, `sv` and `sig` query string. The
+`sig` is what makes the whole URL a secret.
 
 This is deliberately **not** the old _Connectors → Incoming Webhook_ route: Microsoft retired
 Office 365 connector webhooks in 2025, and the two take different payloads — connectors take a
@@ -447,7 +452,7 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
 - **`Teams notification failed: ...` with the build UNSTABLE.** Wrapped like the other publish
   steps, so it never fails the build. Usual causes: the `teams-webhook-url` credential is
   missing, the flow behind the webhook was deleted or turned off, or the node has no outbound
-  HTTPS to `*.logic.azure.com`.
+  HTTPS to the webhook's host.
 - **The build log says `Teams notification sent.` but no card appears.** The webhook returns
   `202` before the flow runs, so the failure is inside Power Automate — open the flow's run
   history. A rejected `Post card in a chat or channel` action means the payload is wrong; a
