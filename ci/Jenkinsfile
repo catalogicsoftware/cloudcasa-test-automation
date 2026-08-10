@@ -63,6 +63,8 @@ pipeline {
                 def links = []
                 // Declared here, not in the Allure branch — the Teams step below reads it.
                 def allureUrl = ''
+                // Snapshot before the publish steps: a failed upload must not colour the Teams card.
+                def testResult = currentBuild.currentResult
 
                 // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
                 def allureRoot = env.ALLURE_URL?.trim()?.replaceAll('/+$', '')
@@ -246,16 +248,14 @@ pipeline {
                 } else {
                     // Same as the steps above: a broken notification must not fail the build.
                     try {
-                        // Read last so it reflects an UNSTABLE set by a failed publish above.
-                        def result = currentBuild.currentResult
-                        def colour = result == 'SUCCESS' ? 'good'
-                            : (result == 'UNSTABLE' ? 'warning' : 'attention')
+                        def colour = testResult == 'SUCCESS' ? 'good'
+                            : (testResult == 'UNSTABLE' ? 'warning' : 'attention')
 
                         def body = [
                             [type: 'TextBlock', weight: 'Bolder', size: 'Medium', wrap: true,
                              text: "CloudCasa E2E — ${env.JOB_NAME} #${env.BUILD_NUMBER}".toString()],
                             [type: 'TextBlock', color: colour, wrap: true,
-                             text: "Result: ${result}".toString()],
+                             text: "Result: ${testResult}".toString()],
                         ]
                         def actions = []
                         if (allureUrl) {

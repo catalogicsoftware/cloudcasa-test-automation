@@ -218,8 +218,10 @@ Four publish targets, all off the controller:
   and failure messages only: no attachments (they are already in Allure and Nexus)
   and no links to manual test cases. It runs inside the test image because the CLI is
   installed there, not on the node.
-- **Teams gets one card per build**, sent last in the `post` block so it reports the final
-  verdict including an `UNSTABLE` set by a failed publish. It carries the build result and this
+- **Teams gets one card per build**, sent last in the `post` block but reporting the verdict as
+  it stood **before** any publish step ran — a broken Nexus or Testmo upload leaves the build
+  `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel means the
+  tests, not an unconfigured target. It carries that verdict and this
   build's Allure link only — no Nexus, no Testmo, no test counters. If Allure was not published
   the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
   and carries no link at all otherwise — silence would be indistinguishable from the pipeline
