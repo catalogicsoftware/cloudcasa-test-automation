@@ -1,5 +1,5 @@
 // Runs the Playwright suite in the ci/Dockerfile image; setup in ci/README.md.
-// Publish targets come from Jenkins env vars so they change without a push; unset means the step is off (see ci/README.md).
+// Publish targets are configured in Jenkins, not here, so they change without a push (see ci/README.md).
 import groovy.json.JsonOutput
 
 pipeline {

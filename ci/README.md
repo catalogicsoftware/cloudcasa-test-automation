@@ -175,6 +175,11 @@ received"**, pick the team and channel, and copy the URL it generates. Store it 
 identifies it: `/triggers/manual/paths/invoke` with an `sp`, `sv` and `sig` query string. The
 `sig` is what makes the whole URL a secret.
 
+Paste it with no trailing newline or space. The `post` block hands it to `curl` through a config
+on stdin without trimming — trimming it would mean materialising the secret in Groovy — so stray
+whitespace produces a malformed config and a `Teams notification failed: ...` UNSTABLE rather
+than a request. Same class of constraint as the `allure-creds` password above.
+
 This is deliberately **not** the old _Connectors → Incoming Webhook_ route: Microsoft retired
 Office 365 connector webhooks in 2025, and the two take different payloads — connectors take a
 `MessageCard`, Workflows takes a Teams message envelope wrapping an Adaptive Card, which is what
@@ -220,8 +225,8 @@ Four publish targets, all off the controller:
   installed there, not on the node.
 - **Teams gets one card per build**, sent last in the `post` block but reporting the verdict as
   it stood **before** any publish step ran — a broken Nexus or Testmo upload leaves the build
-  `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel means the
-  tests, not an unconfigured target. It carries that verdict and this
+  `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel points at
+  the test run rather than at an unconfigured publish target. It carries that verdict and this
   build's Allure link only — no Nexus, no Testmo, no test counters. If Allure was not published
   the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
   and carries no link at all otherwise — silence would be indistinguishable from the pipeline
@@ -426,13 +431,14 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   `internal-ca-cert` credential (see "Required credentials"). `-k` would also
   "work", but that upload carries the Nexus password in a Basic-auth header, so
   it must not go over an unverified connection.
-- **`CredentialNotFoundException` in the `post` block** — the publish steps run
-  on the node and need `allure-creds`, `nexus-creds` and `internal-ca-cert` to
-  exist before the first build. Both branches are wrapped in `try/catch`, so a
-  missing credential (or an unreachable host) shows up only as
-  `Allure publish failed: ...` / `Nexus publish failed: ...` in the console plus
-  an UNSTABLE build — easy to miss in a long log, so check for those lines when a
-  build is green-ish but no report appeared.
+- **`CredentialNotFoundException` in the `post` block** — the steps that run on the
+  node need `allure-creds`, `nexus-creds`, `internal-ca-cert` and
+  `teams-webhook-url` to exist before the first build. All three branches are
+  wrapped in `try/catch`, so a missing credential (or an unreachable host) shows up
+  only as `Allure publish failed: ...` / `Nexus publish failed: ...` /
+  `Teams notification failed: ...` in the console plus an UNSTABLE build — easy to
+  miss in a long log, so check for those lines when a build is green-ish but no
+  report or card appeared.
 - **`Testmo submit failed: ...` with the build UNSTABLE.** The submit is wrapped like
   the other publish steps, so this never fails the build. Usual causes: the
   `testmo-token` credential is missing, the key lacks write access, `TESTMO_PROJECT_ID`
