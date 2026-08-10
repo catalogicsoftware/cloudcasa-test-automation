@@ -465,7 +465,19 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
 - **`Teams notification failed: ...` with the build UNSTABLE.** Wrapped like the other publish
   steps, so it never fails the build. Usual causes: the `teams-webhook-url` credential is
   missing, the flow behind the webhook was deleted or turned off, or the node has no outbound
-  HTTPS to the webhook's host.
+  HTTPS to the webhook's host. `curl` prints its verdict on the preceding line, and
+  `script returned exit code 22` means it got an HTTP error rather than a transport failure.
+- **`curl: (22) The requested URL returned error: 400` from the Teams step.** Almost always a
+  disabled flow, not a bad payload — Power Automate answers a suspended trigger with
+  `WorkflowTriggerIsNotEnabled`, and it suspends flows in trial and default environments on its
+  own. Switch the flow back on in _Power Automate → My flows_. To see the body behind the code,
+  re-send by hand without `-f`:
+
+  ```bash
+  printf 'url = "%s"\n' "$WEBHOOK" | curl -sS -K - -X POST \
+      -H 'Content-Type: application/json' -d '{"type":"message","attachments":[]}'
+  ```
+
 - **The build log says `Teams notification sent.` but no card appears.** The webhook returns
   `202` before the flow runs, so the failure is inside Power Automate — open the flow's run
   history. A rejected `Post card in a chat or channel` action means the payload is wrong; a
