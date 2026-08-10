@@ -12,10 +12,17 @@ Runs the CloudCasa Playwright suite inside a container on a Jenkins worker.
 
 ## How it works
 
-The pipeline (`agent any`) explicitly runs `docker.build('cloudcasa-playwright-tests',
-'-f ci/Dockerfile .')` from the repo root, then `image.inside('--ipc=host') { ... }`
-to run the `Test` stage's `sh` steps inside that container. `CI=true` activates the
-CI branch of `playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+Two stages on one node (`agent any`, so they share a workspace). **Build image** runs
+`docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')` from the repo root; **Run tests**
+then does `docker.image(env.TEST_IMAGE).inside('--ipc=host') { ... }` and runs its `sh`
+steps inside that container. `CI=true` activates the CI branch of
+`playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+
+The image is handed over by tag, not by object: `TEST_IMAGE` is a pipeline-level
+`environment` entry because a `docker.build()` return value cannot cross a stage
+boundary, and the `post` block needs the same name again. `.inside()` runs
+`docker inspect` before any `docker pull`, so a locally built tag is found without
+touching a registry, and `disableConcurrentBuilds()` keeps two builds off the same tag.
 
 `--ipc=host` is required once `workers` is above 1: Docker gives a container 64 MB
 of `/dev/shm` by default, which is enough for a single Chromium and makes parallel
@@ -30,7 +37,7 @@ raising this further needs the same check for whatever tests exist by then.
 This intentionally does **not** use the declarative `agent { dockerfile { ... } }`
 sugar — see the first two Troubleshooting entries below for why.
 
-The stage starts by deleting `allure-results/`, `playwright-report/` and
+**Build image** starts by deleting `allure-results/`, `playwright-report/` and
 `test-results/` **on the node, before the image is built**. The workspace is
 reused between builds, and `allure-playwright` appends rather than replaces, so
 without this a build would publish its whole accumulated history as one run.
@@ -234,7 +241,7 @@ Four publish targets, all off the controller:
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
 > so a local `npm test` and a CI run produce the same results. `allure-playwright`
-> **appends** to `allure-results`, which is why the `Test` stage clears it first
+> **appends** to `allure-results`, which is why **Build image** clears it first
 > (see "How it works"). Locally the same accumulation happens silently: a month of
 > runs had grown to 938 files / 853 MB.
 
@@ -449,8 +456,8 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   same name overrides it with an empty value. Both variables of the pair are
   required — see "Publish target variables".
 - **`No JUnit results — skipping the Testmo submit.`** `test-results/junit.xml` was
-  never written, which means the `Test` stage did not get as far as running tests —
-  look for an image build or workspace-mount failure above, not at Testmo.
+  never written, which means **Run tests** did not get as far as running them — look
+  for a failure in **Build image** or a workspace-mount problem above, not at Testmo.
 - Real app/test failures seen against a live staging target are not stack
   issues: e.g. `page.waitForResponse: Test timeout of 120000ms exceeded` on
   login/password-reset flows reflects the live app's actual response time

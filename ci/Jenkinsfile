@@ -5,6 +5,11 @@ import groovy.json.JsonOutput
 pipeline {
     agent any
 
+    environment {
+        // Built in one stage, then reused by name in the next one and in the post block.
+        TEST_IMAGE = 'cloudcasa-playwright-tests'
+    }
+
     options {
         timeout(time: 60, unit: 'MINUTES')
         disableConcurrentBuilds()
@@ -12,12 +17,19 @@ pipeline {
     }
 
     stages {
-        stage('Test') {
+        stage('Build image') {
             steps {
                 script {
-                    // On the node and before the build: if the stage dies early, post must find nothing to publish.
+                    // On the node and before the build: if a stage dies early, post must find nothing to publish.
                     sh 'rm -rf allure-results playwright-report test-results'
-                    def image = docker.build('cloudcasa-playwright-tests', '-f ci/Dockerfile .')
+                    docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')
+                }
+            }
+        }
+
+        stage('Run tests') {
+            steps {
+                script {
                     // IN_* names dodge Jenkins' sensitive-name filter (see ci/README.md).
                     withCredentials([
                         string(credentialsId: 'cloudcasa-base-url', variable: 'IN_BASE_URL'),
@@ -31,7 +43,7 @@ pipeline {
                     ]) {
                         withEnv(['CI=true']) {
                             // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
-                            image.inside('--ipc=host') {
+                            docker.image(env.TEST_IMAGE).inside('--ipc=host') {
                                 // The workspace isn't the image's /app, so its node_modules aren't resolvable.
                                 // rm first: onto a real directory, ln would nest the link inside it and exit 0.
                                 sh 'rm -rf node_modules && ln -s /app/node_modules node_modules'
@@ -218,8 +230,7 @@ pipeline {
                             // docker.inside() passes in a computed env delta, not the whole environment.
                             withEnv(["TESTMO_URL=${testmoRoot}",
                                      "TESTMO_PROJECT_ID=${testmoProject}"]) {
-                                // The stage's `image` variable is out of scope here.
-                                docker.image('cloudcasa-playwright-tests').inside {
+                                docker.image(env.TEST_IMAGE).inside {
                                     sh '''
                                         set -eu
                                         rm -rf node_modules
