@@ -12,10 +12,17 @@ Runs the CloudCasa Playwright suite inside a container on a Jenkins worker.
 
 ## How it works
 
-The pipeline (`agent any`) explicitly runs `docker.build('cloudcasa-playwright-tests',
-'-f ci/Dockerfile .')` from the repo root, then `image.inside('--ipc=host') { ... }`
-to run the `Test` stage's `sh` steps inside that container. `CI=true` activates the
-CI branch of `playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+Two stages on one node (`agent any`, so they share a workspace). **Build image** runs
+`docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')` from the repo root; **Run tests**
+then does `docker.image(env.TEST_IMAGE).inside('--ipc=host') { ... }` and runs its `sh`
+steps inside that container. `CI=true` activates the CI branch of
+`playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+
+The image is handed over by tag, not by object: `TEST_IMAGE` is a pipeline-level
+`environment` entry because a `docker.build()` return value cannot cross a stage
+boundary, and the `post` block needs the same name again. `.inside()` runs
+`docker inspect` before any `docker pull`, so a locally built tag is found without
+touching a registry, and `disableConcurrentBuilds()` keeps two builds off the same tag.
 
 `--ipc=host` is required once `workers` is above 1: Docker gives a container 64 MB
 of `/dev/shm` by default, which is enough for a single Chromium and makes parallel
@@ -30,7 +37,7 @@ raising this further needs the same check for whatever tests exist by then.
 This intentionally does **not** use the declarative `agent { dockerfile { ... } }`
 sugar — see the first two Troubleshooting entries below for why.
 
-The stage starts by deleting `allure-results/`, `playwright-report/` and
+**Build image** starts by deleting `allure-results/`, `playwright-report/` and
 `test-results/` **on the node, before the image is built**. The workspace is
 reused between builds, and `allure-playwright` appends rather than replaces, so
 without this a build would publish its whole accumulated history as one run.
@@ -41,15 +48,18 @@ for the `post` block to publish as this build's results.
 ## Jenkins prerequisites
 
 - **Docker** available on the agent (the pipeline shells out to `docker build` / `docker run`).
-- **`curl`** available on the node (used to publish reports to Allure and Nexus).
+- **`curl`** available on the node (used to publish to Allure and Nexus and to post the Teams card).
 - **Network access from the node** to the Allure host (`ALLURE_URL`) and Nexus.
-- **Outbound HTTPS from the node** to `*.testmo.net`. Every other integration talks
-  inward only, so this is the one path that may need the corporate proxy.
+- **Outbound HTTPS from the node** to `*.testmo.net` and to the Teams webhook's own host —
+  read it out of the `teams-webhook-url` credential rather than assuming, because Power
+  Automate issues these on both `*.logic.azure.com` and `*.api.powerplatform.com` depending
+  on the tenant. Every other integration talks inward only, so these are the paths that may
+  need the corporate proxy.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
 ## Publish target variables
 
-The three publish targets are configured entirely through environment variables —
+The four publish targets are each switched on or off through environment variables —
 the `Jenkinsfile` holds no addresses, so moving a host or switching a project is a
 Jenkins change, not a commit and a push.
 
@@ -59,23 +69,28 @@ need the Folder Properties plugin **and** a `withFolderProperties { }` wrapper i
 the pipeline, so they are not a drop-in alternative here — on a controller shared
 with jobs that use these names, prefix them instead.
 
-| Variable             | What it is                                                      | Value in use                       |
-| -------------------- | --------------------------------------------------------------- | ---------------------------------- |
-| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://172.24.3.150:5050`         |
-| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                    |
-| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us` |
-| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`           |
-| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                |
-| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                |
+| Variable             | What it is                                                      | Value in use                            |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://cc-allure.ad.catalogic.us:5050` |
+| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                         |
+| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us`      |
+| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`                |
+| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                     |
+| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                     |
+| `TEAMS_NOTIFY`       | `true` enables the Teams card; anything else switches it off    | `true`                                  |
 
 The Testmo tenant and project do not exist yet, so those two stay unset and that
 step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.
 
 **An unset variable switches its step off**, which is also the kill switch: clear
-`TESTMO_URL` in Jenkins and the submit stops without touching the repo. Each step
-needs both of its variables, so a half-filled pair skips rather than failing
-against an incomplete address. Values are trimmed and any trailing slash is
-dropped, so a stray one is not an outage.
+`TESTMO_URL` in Jenkins and the submit stops without touching the repo. The three
+targets with a variable pair need both of theirs, so a half-filled pair skips rather
+than failing against an incomplete address. Values are trimmed and any trailing slash
+is dropped, so a stray one is not an outage.
+
+Teams is the one target whose address is **not** here: the Workflows webhook URL embeds a
+signature token, so it is a credential (`teams-webhook-url`), and `TEAMS_NOTIFY` is the
+separate non-secret switch. Both are required — the credential alone does nothing.
 
 Nexus is the exception: unsetting it does not stop publishing, it redirects to
 archiving `playwright-report/**` + `test-results/**` **on the controller** — which
@@ -88,6 +103,7 @@ What the console prints when a step is off:
 ALLURE_URL / ALLURE_PROJECT_ID not set in Jenkins — skipping the Allure publish.
 NEXUS_URL / NEXUS_REPORTS_REPO not set in Jenkins. Falling back to archiving on the controller so reports are not lost during setup.
 TESTMO_URL / TESTMO_PROJECT_ID not set in Jenkins — skipping the Testmo submit.
+TEAMS_NOTIFY not set to true in Jenkins — skipping the Teams notification.
 ```
 
 The "value in use" column exists so a fresh controller can be brought up without
@@ -118,17 +134,18 @@ must be provided explicitly, e.g. via this credential. Confirmed by a live
 run: every testmail-dependent test failed with `TypeError: Failed to parse
 URL from undefined?apikey=...` until this credential was added.
 
-Four more credentials are used by the publish steps in the `post` block. The
-Allure and Nexus ones run on the node; the Testmo one runs inside the test image,
-which is why its key needs the `IN_*` indirection described under Troubleshooting.
-Two are **Username with password**, one a **Secret file** and one **Secret text**:
+Five more credentials are used by the publish steps in the `post` block. The
+Allure, Nexus and Teams ones run on the node; the Testmo one runs inside the test
+image, which is why its key needs the `IN_*` indirection described under Troubleshooting.
+Two are **Username with password**, one a **Secret file** and two **Secret text**:
 
-| Credential ID      | Kind            | What it is                                                                                                                |
-| ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `allure-creds`     | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) — must contain no `"` or `\`, see below |
-| `nexus-creds`      | user/password   | a Nexus account with **write** access to the reports repo                                                                 |
-| `internal-ca-cert` | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                                                             |
-| `testmo-token`     | Secret text     | Testmo API key with write access for automation runs                                                                      |
+| Credential ID       | Kind            | What it is                                                                                                                |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `allure-creds`      | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) — must contain no `"` or `\`, see below |
+| `nexus-creds`       | user/password   | a Nexus account with **write** access to the reports repo                                                                 |
+| `internal-ca-cert`  | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                                                             |
+| `testmo-token`      | Secret text     | Testmo API key with write access for automation runs                                                                      |
+| `teams-webhook-url` | Secret text     | Power Automate Workflows webhook URL for the target Teams channel                                                         |
 
 `allure-creds` has one constraint: the Allure login body is a JSON document built
 with `printf` in the `post` block, so a password containing `"` or `\` produces
@@ -155,15 +172,40 @@ Alternatively, install that root into the node's trust store
 `--cacert` flag — that fixes every HTTPS call from the agent, but needs root on
 the host.
 
+### Creating the Teams webhook
+
+In the target channel: **⋯ → Workflows → "Post to a channel when a webhook request is
+received"**, pick the team and channel, and copy the URL it generates. Store it as the
+`teams-webhook-url` Secret text credential. The host varies by tenant — older flows are on
+`prod-NN.<region>.logic.azure.com`, newer ones on
+`<env>.<region>.environment.api.powerplatform.com` — so the path in it, not the host, is what
+identifies it: `/triggers/manual/paths/invoke` with an `sp`, `sv` and `sig` query string. The
+`sig` is what makes the whole URL a secret.
+
+Paste it with no trailing newline or space. The `post` block hands it to `curl` through a config
+on stdin without trimming — trimming it would mean materialising the secret in Groovy — so stray
+whitespace produces a malformed config and a `Teams notification failed: ...` UNSTABLE rather
+than a request. Same class of constraint as the `allure-creds` password above.
+
+This is deliberately **not** the old _Connectors → Incoming Webhook_ route: Microsoft retired
+Office 365 connector webhooks in 2025, and the two take different payloads — connectors take a
+`MessageCard`, Workflows takes a Teams message envelope wrapping an Adaptive Card, which is what
+the `post` block sends.
+
+The endpoint answers `202 Accepted` before the flow renders the card, so a `202` is not proof the
+message arrived. When a card is missing but the build log says the notification was sent, check
+the flow's run history in Power Automate.
+
 ## Reports
 
-Three publish targets, all off the controller:
+Four publish targets, all off the controller:
 
-| Target                                  | What it is                                            | Renders?                  |
-| --------------------------------------- | ----------------------------------------------------- | ------------------------- |
-| **Allure Docker Service** on its own VM | the browsable report + cross-build trend history      | Yes                       |
-| **Nexus `raw` repo**                    | the Playwright HTML report kept as a plain file store | No — nginx CSP, see below |
-| **Testmo Cloud**                        | automation run history and team-facing reporting      | Yes — Testmo's own UI     |
+| Target                                  | What it is                                                     | Renders?                  |
+| --------------------------------------- | -------------------------------------------------------------- | ------------------------- |
+| **Allure Docker Service** on its own VM | the browsable report + cross-build trend history               | Yes                       |
+| **Nexus `raw` repo**                    | the Playwright HTML report kept as a plain file store          | No — nginx CSP, see below |
+| **Testmo Cloud**                        | automation run history and team-facing reporting               | Yes — Testmo's own UI     |
+| **Teams channel**                       | one card per build with the link to that build's Allure report | Yes — Adaptive Card       |
 
 - **Allure is the report people open.** The `post` block POSTs the raw
   `allure-results` to the service, which generates the report on its own host and
@@ -188,10 +230,18 @@ Three publish targets, all off the controller:
   and failure messages only: no attachments (they are already in Allure and Nexus)
   and no links to manual test cases. It runs inside the test image because the CLI is
   installed there, not on the node.
+- **Teams gets one card per build**, sent last in the `post` block but reporting the verdict as
+  it stood **before** any publish step ran — a broken Nexus or Testmo upload leaves the build
+  `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel points at
+  the test run rather than at an unconfigured publish target. It carries that verdict and this
+  build's Allure link only — no Nexus, no Testmo, no test counters. If Allure was not published
+  the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
+  and carries no link at all otherwise — silence would be indistinguishable from the pipeline
+  never having run.
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
 > so a local `npm test` and a CI run produce the same results. `allure-playwright`
-> **appends** to `allure-results`, which is why the `Test` stage clears it first
+> **appends** to `allure-results`, which is why **Build image** clears it first
 > (see "How it works"). Locally the same accumulation happens silently: a month of
 > runs had grown to 938 files / 853 MB.
 
@@ -238,16 +288,18 @@ attachments live on that host's own disk.
 
 ### Allure server
 
-A dedicated Ubuntu 24 VM, containers only. Not domain-joined — reached by IP.
+A dedicated Ubuntu 24 VM, containers only — reached by its `ad.catalogic.us` DNS name now, not the bare IP it used before.
 
-| Thing             | Value                                                      |
-| ----------------- | ---------------------------------------------------------- |
-| API / report      | `http://172.24.3.150:5050/allure-docker-service`           |
-| UI (project list) | `http://172.24.3.150:5252`                                 |
-| Project ID        | `cloudcasa-e2e` — must stay stable, it carries the history |
-| Compose file      | `/opt/allure/docker-compose.yml` + `/opt/allure/.env`      |
-| Data              | `/var/lib/allure/projects` — dedicated 100 GB ext4 disk    |
-| Images            | `frankescobar/allure-docker-service:2.44.0` + `-ui`        |
+| Thing             | Value                                                         |
+| ----------------- | ------------------------------------------------------------- |
+| API / report      | `http://cc-allure.ad.catalogic.us:5050/allure-docker-service` |
+| UI (project list) | `http://cc-allure.ad.catalogic.us:5252`                       |
+| Project ID        | `cloudcasa-e2e` — must stay stable, it carries the history    |
+| Compose file      | `/opt/allure/docker-compose.yml` + `/opt/allure/.env`         |
+| Data              | `/var/lib/allure/projects` — dedicated 100 GB ext4 disk       |
+| Images            | `frankescobar/allure-docker-service:2.44.0` + `-ui`           |
+
+`ALLURE_URL` must stay on **5050**: the UI on 5252 is an Express server that answers `200` with `index.html` for every path, so a wrong port breaks the upload without an error.
 
 Notable service settings: `CHECK_RESULTS_EVERY_SECONDS=NONE` (the pipeline pushes
 and calls `generate-report` explicitly, so directory polling is pointless),
@@ -386,13 +438,14 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   `internal-ca-cert` credential (see "Required credentials"). `-k` would also
   "work", but that upload carries the Nexus password in a Basic-auth header, so
   it must not go over an unverified connection.
-- **`CredentialNotFoundException` in the `post` block** — the publish steps run
-  on the node and need `allure-creds`, `nexus-creds` and `internal-ca-cert` to
-  exist before the first build. Both branches are wrapped in `try/catch`, so a
-  missing credential (or an unreachable host) shows up only as
-  `Allure publish failed: ...` / `Nexus publish failed: ...` in the console plus
-  an UNSTABLE build — easy to miss in a long log, so check for those lines when a
-  build is green-ish but no report appeared.
+- **`CredentialNotFoundException` in the `post` block** — the steps that run on the
+  node need `allure-creds`, `nexus-creds`, `internal-ca-cert` and
+  `teams-webhook-url` to exist before the first build. All three branches are
+  wrapped in `try/catch`, so a missing credential (or an unreachable host) shows up
+  only as `Allure publish failed: ...` / `Nexus publish failed: ...` /
+  `Teams notification failed: ...` in the console plus an UNSTABLE build — easy to
+  miss in a long log, so check for those lines when a build is green-ish but no
+  report or card appeared.
 - **`Testmo submit failed: ...` with the build UNSTABLE.** The submit is wrapped like
   the other publish steps, so this never fails the build. Usual causes: the
   `testmo-token` credential is missing, the key lacks write access, `TESTMO_PROJECT_ID`
@@ -403,12 +456,35 @@ chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   same name overrides it with an empty value. Both variables of the pair are
   required — see "Publish target variables".
 - **`No JUnit results — skipping the Testmo submit.`** `test-results/junit.xml` was
-  never written, which means the `Test` stage did not get as far as running tests —
-  look for an image build or workspace-mount failure above, not at Testmo.
+  never written, which means **Run tests** did not get as far as running them — look
+  for a failure in **Build image** or a workspace-mount problem above, not at Testmo.
 - Real app/test failures seen against a live staging target are not stack
   issues: e.g. `page.waitForResponse: Test timeout of 120000ms exceeded` on
   login/password-reset flows reflects the live app's actual response time
   under test, not a pipeline misconfiguration.
+- **`Teams notification failed: ...` with the build UNSTABLE.** Wrapped like the other publish
+  steps, so it never fails the build. Usual causes: the `teams-webhook-url` credential is
+  missing, the flow behind the webhook was deleted or turned off, or the node has no outbound
+  HTTPS to the webhook's host. `curl` prints its verdict on the preceding line, and
+  `script returned exit code 22` means it got an HTTP error rather than a transport failure.
+- **`curl: (22) The requested URL returned error: 400` from the Teams step.** Almost always a
+  disabled flow, not a bad payload — Power Automate answers a suspended trigger with
+  `WorkflowTriggerIsNotEnabled`, and it suspends flows in trial and default environments on its
+  own. Switch the flow back on in _Power Automate → My flows_. To see the body behind the code,
+  re-send by hand without `-f`:
+
+  ```bash
+  printf 'url = "%s"\n' "$WEBHOOK" | curl -sS -K - -X POST \
+      -H 'Content-Type: application/json' -d '{"type":"message","attachments":[]}'
+  ```
+
+- **The build log says `Teams notification sent.` but no card appears.** The webhook returns
+  `202` before the flow runs, so the failure is inside Power Automate — open the flow's run
+  history. A rejected `Post card in a chat or channel` action means the payload is wrong; a
+  missing run means the URL points at a deleted flow.
+- **`Scripts not permitted to use staticMethod groovy.json.JsonOutput toJson`.** The Groovy
+  sandbox rejected the card builder on this controller. Approve it in _Manage Jenkins →
+  In-process Script Approval_; it is a read-only serializer, not a sandbox escape.
 
 Allure host specifically:
 
