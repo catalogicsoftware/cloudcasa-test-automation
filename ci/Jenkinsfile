@@ -1,7 +1,14 @@
 // Runs the Playwright suite in the ci/Dockerfile image; setup in ci/README.md.
-// Publish targets come from Jenkins env vars so they change without a push; unset means the step is off (see ci/README.md).
+// Publish targets are configured in Jenkins, not here, so they change without a push (see ci/README.md).
+import groovy.json.JsonOutput
+
 pipeline {
     agent any
+
+    environment {
+        // Built in one stage, then reused by name in the next one and in the post block.
+        TEST_IMAGE = 'cloudcasa-playwright-tests'
+    }
 
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -10,12 +17,19 @@ pipeline {
     }
 
     stages {
-        stage('Test') {
+        stage('Build image') {
             steps {
                 script {
-                    // On the node and before the build: if the stage dies early, post must find nothing to publish.
+                    // On the node and before the build: if a stage dies early, post must find nothing to publish.
                     sh 'rm -rf allure-results playwright-report test-results'
-                    def image = docker.build('cloudcasa-playwright-tests', '-f ci/Dockerfile .')
+                    docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')
+                }
+            }
+        }
+
+        stage('Run tests') {
+            steps {
+                script {
                     // IN_* names dodge Jenkins' sensitive-name filter (see ci/README.md).
                     withCredentials([
                         string(credentialsId: 'cloudcasa-base-url', variable: 'IN_BASE_URL'),
@@ -25,12 +39,11 @@ pipeline {
                         string(credentialsId: 'cloudcasa-testmail-api-key', variable: 'IN_TESTMAIL_APICODE'),
                         string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
                         string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
-                        string(credentialsId: 'cloudcasa-registered-user-password', variable: 'IN_REG_PASS'),
                         string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
                     ]) {
                         withEnv(['CI=true']) {
                             // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
-                            image.inside('--ipc=host') {
+                            docker.image(env.TEST_IMAGE).inside('--ipc=host') {
                                 // The workspace isn't the image's /app, so its node_modules aren't resolvable.
                                 // rm first: onto a real directory, ln would nest the link inside it and exit 0.
                                 sh 'rm -rf node_modules && ln -s /app/node_modules node_modules'
@@ -42,7 +55,6 @@ pipeline {
                                     export TESTMAIL_API_KEY="$IN_TESTMAIL_APICODE"
                                     export CLOUDCASA_API_URL="$IN_API_URL"
                                     export CLOUDCASA_API_TOKEN="$IN_API_CODE"
-                                    export REGISTERED_USER_PASSWORD="$IN_REG_PASS"
                                     export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
                                     npx playwright test
                                 '''
@@ -56,11 +68,15 @@ pipeline {
 
     post {
         always {
-            // Publishes to Allure (browsable), Nexus (artifact store) and Testmo (run history); see ci/README.md.
+            // Publishes to Allure (browsable), Nexus (artifacts) and Testmo (run history), then notifies Teams; see ci/README.md.
             script {
                 // Set once at the end so neither step clobbers the other's link.
                 // Bare URLs, not <a> tags: Jenkins' default markup formatter escapes HTML in the description.
                 def links = []
+                // Declared here, not in the Allure branch — the Teams step below reads it.
+                def allureUrl = ''
+                // Snapshot before the publish steps: a failed upload must not colour the Teams card.
+                def testResult = currentBuild.currentResult
 
                 // Typed by hand in Jenkins, so absorb stray whitespace and trailing slashes here.
                 def allureRoot = env.ALLURE_URL?.trim()?.replaceAll('/+$', '')
@@ -132,7 +148,7 @@ pipeline {
                             }
                         }
                         // This build's own report; `latest` would drift to the newest one.
-                        def allureUrl = fileExists('allure-report-url.txt')
+                        allureUrl = fileExists('allure-report-url.txt')
                             ? readFile('allure-report-url.txt').trim() : ''
                         if (allureUrl) {
                             echo "Allure report: ${allureUrl}"
@@ -214,8 +230,7 @@ pipeline {
                             // docker.inside() passes in a computed env delta, not the whole environment.
                             withEnv(["TESTMO_URL=${testmoRoot}",
                                      "TESTMO_PROJECT_ID=${testmoProject}"]) {
-                                // The stage's `image` variable is out of scope here.
-                                docker.image('cloudcasa-playwright-tests').inside {
+                                docker.image(env.TEST_IMAGE).inside {
                                     sh '''
                                         set -eu
                                         rm -rf node_modules
@@ -234,6 +249,70 @@ pipeline {
                         echo 'Testmo run submitted.'
                     } catch (err) {
                         echo "Testmo submit failed: ${err}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+
+                // --- 4. Teams ---
+                if (env.TEAMS_NOTIFY?.trim() != 'true') {
+                    echo 'TEAMS_NOTIFY not set to true in Jenkins — skipping the Teams notification.'
+                } else {
+                    // Same as the steps above: a broken notification must not fail the build.
+                    try {
+                        def colour = testResult == 'SUCCESS' ? 'good'
+                            : (testResult == 'UNSTABLE' ? 'warning' : 'attention')
+
+                        def body = [
+                            [type: 'TextBlock', weight: 'Bolder', size: 'Medium', wrap: true,
+                             text: "CloudCasa E2E — ${env.JOB_NAME} #${env.BUILD_NUMBER}".toString()],
+                            [type: 'TextBlock', color: colour, wrap: true,
+                             text: "Result: ${testResult}".toString()],
+                        ]
+                        def actions = []
+                        if (allureUrl) {
+                            actions << [type: 'Action.OpenUrl', title: 'Open Allure report', url: allureUrl]
+                        } else {
+                            body << [type: 'TextBlock', wrap: true,
+                                     text: 'Allure report was not published — see the build log.']
+                            // BUILD_URL is unset until the controller's root URL is configured.
+                            if (env.BUILD_URL) {
+                                actions << [type: 'Action.OpenUrl', title: 'Open build', url: env.BUILD_URL]
+                            }
+                        }
+
+                        withCredentials([string(credentialsId: 'teams-webhook-url', variable: 'TEAMS_HOOK')]) {
+                            // Workflows needs the message envelope, not a bare card (see ci/README.md).
+                            writeFile file: 'teams-card.json', encoding: 'UTF-8', text: JsonOutput.toJson([
+                                type: 'message',
+                                attachments: [[
+                                    contentType: 'application/vnd.microsoft.card.adaptive',
+                                    contentUrl: null,
+                                    content: [
+                                        type: 'AdaptiveCard',
+                                        '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+                                        version: '1.4',
+                                        body: body,
+                                        actions: actions,
+                                    ],
+                                ]],
+                            ])
+
+                            sh '''
+                                set -eu
+
+                                # The workspace is reused — don't leave this build's card for the next one.
+                                trap 'rm -f teams-card.json' EXIT
+
+                                # -K -: the signed URL arrives on stdin, so it never reaches argv or disk.
+                                printf 'url = "%s"\\n' "$TEAMS_HOOK" \
+                                  | curl -sSf -K - -X POST \
+                                        -H 'Content-Type: application/json' \
+                                        --data-binary @teams-card.json > /dev/null
+                            '''
+                        }
+                        echo 'Teams notification sent.'
+                    } catch (err) {
+                        echo "Teams notification failed: ${err}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
