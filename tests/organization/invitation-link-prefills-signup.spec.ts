@@ -3,9 +3,12 @@
 // seed: seed.spec.ts
 import { test, expect } from '@fixtures/auth';
 import { getInvitation } from '@utils/testmail';
+import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
 import { fakeInvitedUser } from '@data/user';
 
 test.describe('Invite organization', () => {
+  test.describe.configure({ timeout: EMAIL_TEST_TIMEOUT });
+
   test('Invitation link opens sign-up page with prefilled user data', async ({
     ccApi,
     signUpPage,

@@ -1,5 +1,6 @@
 import { test as base } from './base';
 import { Page } from '@playwright/test';
+import { LOGIN_REDIRECT_TIMEOUT } from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
 import { TestmailTag, testmailAddress } from '@data/testmail-tags';
 
@@ -10,13 +11,25 @@ type AuthFixtures = {
   adminJwt: string;
   usersApi: UsersApi;
   cleanRegisteredUserState: void;
+  createdObjectStorages: string[];
 };
 
 export const test = base.extend<AuthFixtures>({
   loggedInPage: async ({ page, loginPage }, use) => {
-    await loginPage.goto();
-    await loginPage.login(process.env.CC_EMAIL ?? '', process.env.CC_PASSWORD ?? '');
-    await page.waitForURL('**/dashboard**');
+    const signIn = async (): Promise<void> => {
+      await loginPage.goto();
+      await loginPage.login(process.env.CC_EMAIL ?? '', process.env.CC_PASSWORD ?? '');
+      await page.waitForURL('**/dashboard**', { timeout: LOGIN_REDIRECT_TIMEOUT });
+    };
+
+    // Staging drops a sign-in back onto the IdP form often enough that nothing but a second
+    // attempt recovers it: the chain ends on the login form, so waiting longer cannot help.
+    try {
+      await signIn();
+    } catch {
+      await signIn();
+    }
+
     await use(page);
   },
 
@@ -75,6 +88,25 @@ export const test = base.extend<AuthFixtures>({
     await clean();
     await use();
     await clean();
+  },
+
+  // Names are pushed before the save, so a failure anywhere after it still cleans up.
+  createdObjectStorages: async ({ ccApi }, use) => {
+    const names: string[] = [];
+    await use(names);
+
+    // Every name is attempted before any failure is raised, so one bad delete cannot strand the rest.
+    const failures: string[] = [];
+    for (const name of names) {
+      try {
+        await ccApi.objectStores.deleteByName(name);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+    if (failures.length) {
+      throw new Error(`Object storage teardown failed for ${failures.join('; ')}`);
+    }
   },
 });
 

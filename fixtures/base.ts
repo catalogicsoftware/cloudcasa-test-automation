@@ -6,6 +6,8 @@ import { SignUpPage } from '@page-object-model/pages/auth/sign-up.page';
 import { ConfigurationPage } from '@page-object-model/pages/configuration/configuration.page';
 import { User, InvitedUser, defaultUser, invitedUser, registeredUser } from '@data/user';
 import { UsersConfigurationPage } from '@page-object-model/pages/configuration/user-configuration.page';
+import { StorageConfigurationPage } from '@page-object-model/pages/configuration/storage-configuration.page';
+import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
@@ -16,6 +18,8 @@ type Pages = {
   resetPasswordPage: ResetPasswordPage;
   configurationPage: ConfigurationPage;
   usersConfigurationPage: UsersConfigurationPage;
+  storageConfigurationPage: StorageConfigurationPage;
+  toast: Toast;
   signUpPage: SignUpPage;
   adminUser: User;
   invitedUser: InvitedUser;
@@ -54,6 +58,12 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   usersConfigurationPage: async ({ page }, use) => {
     await use(new UsersConfigurationPage(page));
+  },
+  storageConfigurationPage: async ({ page }, use) => {
+    await use(new StorageConfigurationPage(page));
+  },
+  toast: async ({ page }, use) => {
+    await use(new Toast(page));
   },
 
   // CloudCasa REST API client authenticated with the static CLOUDCASA_API_TOKEN.

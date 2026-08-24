@@ -53,15 +53,24 @@ export class Dropdown extends Component {
         await this.menu.locator('input[name="searchField"]').fill(optionText);
       }
 
-      const option = optionLocator
-        ? this.page.locator(optionLocator, { hasText: optionText })
-        : this.menu.locator('button.mat-menu-item', { hasText: optionText });
-      await option.click();
+      await this.option(optionText, optionLocator).click();
 
       if (!keepOpen) {
         await this.closeMenu();
       }
     });
+  }
+
+  /** Matched on the option's own label, exactly: Azure offers "East US", "East US 2" and "East US 2 EUAP" (see README.md). */
+  private option(optionText: string, optionLocator?: string): Locator {
+    if (optionLocator) {
+      return this.page.locator(optionLocator, { hasText: optionText });
+    }
+
+    const exact = JSON.stringify(optionText);
+    return this.menu
+      .locator(`button.mat-menu-item:text-is(${exact})`)
+      .or(this.menu.locator(`button.mat-menu-item:has(:text-is(${exact}))`));
   }
 
   /** Closes the open menu via its footer "close" button. */

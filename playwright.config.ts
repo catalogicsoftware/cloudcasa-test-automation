@@ -4,7 +4,7 @@ import 'dotenv/config';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  timeout: 120 * 1000,
+  timeout: 60 * 1000,
   expect: {
     timeout: 5000,
   },
@@ -17,6 +17,10 @@ export default defineConfig({
   reporter: [['html'], ['allure-playwright'], ['junit', { outputFile: 'test-results/junit.xml' }]],
   use: {
     baseURL: process.env.BASE_URL || 'https://home.cloudcasa.io',
+    // Without these Playwright waits forever on a stuck action, so a broken
+    // locator burns the whole test budget and reports only "test timeout".
+    actionTimeout: 15 * 1000,
+    navigationTimeout: 30 * 1000,
     ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
