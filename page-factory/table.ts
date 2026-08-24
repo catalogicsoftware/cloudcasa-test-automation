@@ -12,12 +12,14 @@ export class Table extends Component {
   }
 
   /**
-   * Header sort buttons carry the column titles. Service header cells
-   * (row actions, column selector) have no sort button and come after all
-   * data columns, so the index among sort buttons equals the td index.
+   * Every header cell, not just the sortable ones: object storages leave
+   * Region/Endpoint/Status/Cluster without a sort button, so keying on those
+   * would hide the columns and shift the index of the ones it does find.
+   * Service cells (row actions, column selector) are unnamed and come after
+   * all data columns, so counting them costs nothing.
    */
   private get headerTitles(): Locator {
-    return this.getLocator().locator('thead th.table__header-cell button.table__sort-button');
+    return this.getLocator().locator('thead th.table__header-cell');
   }
 
   /**
@@ -69,11 +71,12 @@ export class Table extends Component {
     });
   }
 
-  async shouldHaveRow(text: string | RegExp): Promise<void> {
+  /** Pass a timeout when the row is expected to arrive with a refresh the test just triggered. */
+  async shouldHaveRow(text: string | RegExp, timeout?: number): Promise<void> {
     await test.step(`${this.typeOfUpper} "${this.componentName}" should have a row containing "${text}"`, async () => {
       await expect(this.getRow(text), {
         message: `The ${this.typeOf} with name "${this.componentName}" and locator "${this.locator}" has no visible row containing "${text}"`,
-      }).toBeVisible();
+      }).toBeVisible({ timeout });
     });
   }
 
@@ -85,12 +88,24 @@ export class Table extends Component {
     });
   }
 
-  /** Row action buttons are revealed on hover, hence the hover before the click. */
+  /** The actions panel is CSS-revealed only while its wrapper button is hovered (see README.md). */
   async clickRowAction(rowText: string | RegExp, actionName: string): Promise<void> {
     await test.step(`Click "${actionName}" action in row "${rowText}" of ${this.typeOf} "${this.componentName}"`, async () => {
       const row = this.getRow(rowText);
-      await row.hover();
-      await row.locator('td.table__actions-wrapper button', { hasText: actionName }).click();
+      const moreActions = row.locator('button.table__more-actions-wrapper');
+      const action = row.locator(
+        'td.table__actions-wrapper button:not(.table__more-actions-wrapper)',
+        { hasText: actionName },
+      );
+
+      // The list re-renders on its own and that drops the hover, so hovering has to be part of the retry
+      await expect(async () => {
+        await row.hover();
+        if (await moreActions.count()) {
+          await moreActions.hover();
+        }
+        await action.click({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
     });
   }
 }

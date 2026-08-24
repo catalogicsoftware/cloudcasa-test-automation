@@ -4,11 +4,14 @@
 import { faker } from '@faker-js/faker';
 import { test } from '../../fixtures/base';
 import { getPasswordResetLink } from '../../utils/testmail';
+import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
 import { TestmailTag, testmailAddress } from '@data/testmail-tags';
 
 const RESET_PWD_EMAIL = testmailAddress(TestmailTag.RESET_PWD);
 
 test.describe('Forgot Password Flow', () => {
+  test.describe.configure({ timeout: EMAIL_TEST_TIMEOUT });
+
   test('User can reset password via the emailed link and log in with the new password', async ({
     loginPage,
     resetPasswordPage,

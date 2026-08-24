@@ -5,16 +5,9 @@ import { Container } from '@page-fatory/container';
 import { Link } from '@page-fatory/link';
 import { Table } from '@page-fatory/table';
 import { AddObjectStorageWizard } from '@page-object-model/components/drawers/add-object-storage.drawer';
-
-const OBJECT_STORAGE_COLUMNS = [
-  'Name',
-  'Provider',
-  'Bucket name',
-  'Region',
-  'Endpoint',
-  'Status',
-  'Cluster',
-];
+import { ConfirmationDialog } from '@page-object-model/components/confirmation-dialog.components';
+import { STORAGE_LIST_RELOAD_TIMEOUT } from '@data/timeouts';
+import type { StorageTargetSpec } from '../../../types/data/storage';
 
 export class StorageConfigurationPage extends BasePage {
   readonly storagesContainer = new Container({
@@ -43,7 +36,17 @@ export class StorageConfigurationPage extends BasePage {
     name: 'Object storages',
   });
   readonly addObjectStorageWizard = new AddObjectStorageWizard(this.page);
+  readonly removeStorageDialog = new ConfirmationDialog(this.page, 'Remove', 'Remove storage');
 
+  private readonly OBJECT_STORAGE_COLUMNS = [
+    'Name',
+    'Provider',
+    'Bucket name',
+    'Region',
+    'Endpoint',
+    'Status',
+    'Cluster',
+  ];
   constructor(page: Page) {
     super(page);
   }
@@ -57,7 +60,7 @@ export class StorageConfigurationPage extends BasePage {
 
   async shouldHaveObjectStorageColumns(): Promise<void> {
     await test.step('Object storage table should show all its columns', async () => {
-      for (const column of OBJECT_STORAGE_COLUMNS) {
+      for (const column of this.OBJECT_STORAGE_COLUMNS) {
         await expect(
           this.page.locator('app-object-storages thead th', { hasText: column }).first(),
         ).toBeVisible();
@@ -69,5 +72,46 @@ export class StorageConfigurationPage extends BasePage {
     await this.addStorage.click();
     await this.addObjectStorageWizard.shouldBeOpened();
     return this.addObjectStorageWizard;
+  }
+
+  /** Every provider detail typed into the wizard must come back out of the storage list. */
+  async shouldListObjectStorage(name: string, target: StorageTargetSpec): Promise<void> {
+    // The backend reports its own provider_type, which is not always the radio the wizard was filled through.
+    const listedProvider = target.listedProvider ?? target.provider;
+
+    // Azure names a storage account instead of a bucket and has no endpoint, so it owns fewer cells.
+    await this.shouldListStorage(
+      name,
+      target.provider === 'azure'
+        ? { Provider: listedProvider, Region: target.region }
+        : {
+            Provider: listedProvider,
+            'Bucket name': target.bucket,
+            Endpoint: target.endpoint,
+            Region: target.region,
+          },
+    );
+  }
+
+  private async shouldListStorage(
+    name: string,
+    cells: Record<string, string | undefined>,
+  ): Promise<void> {
+    await test.step(`Object storage "${name}" should be listed with its provider details`, async () => {
+      await this.objectStoragesTable.shouldHaveRow(name, STORAGE_LIST_RELOAD_TIMEOUT);
+      for (const [column, expected] of Object.entries(cells)) {
+        if (expected) {
+          await this.objectStoragesTable.shouldHaveCellValue(name, column, expected);
+        }
+      }
+    });
+  }
+
+  async removeObjectStorage(name: string): Promise<void> {
+    await test.step(`Remove object storage "${name}"`, async () => {
+      await this.objectStoragesTable.clickRowAction(name, 'Remove');
+      await this.removeStorageDialog.shouldAskAbout(name);
+      await this.removeStorageDialog.confirmAction();
+    });
   }
 }

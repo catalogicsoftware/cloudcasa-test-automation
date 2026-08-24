@@ -50,7 +50,8 @@ export class LoginPage extends BasePage {
 
   async login(email: string, password: string) {
     await this.emailInput.fill(email, { validateValue: true });
-    await this.passwordInput.fill(password, { validateValue: true });
+    // Every test logs in, so an unmasked step would put CC_PASSWORD in every report.
+    await this.passwordInput.fill(password, { validateValue: true, secret: true });
     await this.signInButton.click();
   }
 

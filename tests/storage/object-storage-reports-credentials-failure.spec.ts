@@ -1,16 +1,17 @@
 import { expect, test } from '@fixtures/auth';
-import { CREDENTIALS_ERROR, deniedCredentialsTarget, fakeStorageName } from '@data/storage';
+import { CREDENTIALS_ERROR, deniedCredentialsTarget } from '@data/storage';
+import { testResourceName } from '@utils/resource-names';
+import { STORAGE_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Backup storage', () => {
+  test.describe.configure({ timeout: STORAGE_TEST_TIMEOUT });
+
   test('Add object storage tells a credentials failure apart from a connectivity one', async ({
     loggedInPage,
     dashboardPage,
     storageConfigurationPage,
     toast,
   }) => {
-    // The backend probes the endpoint before answering; the default 120s is tight.
-    test.setTimeout(240000);
-
     // Log in and navigate to /configuration/mystorage
     await dashboardPage.userHelpModal.closeModal();
     await loggedInPage.goto('/configuration/mystorage', { waitUntil: 'load' });
@@ -23,7 +24,7 @@ test.describe('Backup storage', () => {
     await wizard.goToSummaryStep();
 
     // The backend refuses the target
-    const status = await wizard.saveExpectingRejection(fakeStorageName());
+    const status = await wizard.saveExpectingRejection(testResourceName('denied-credentials'));
     expect(status, 'the backend must refuse unusable credentials').toBe(422);
 
     // The message points at credentials, not at connectivity (CC-763)

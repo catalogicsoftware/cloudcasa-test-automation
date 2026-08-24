@@ -1,4 +1,5 @@
 import { TestmailTag, testmailAddress } from '@data/testmail-tags';
+import { EMAIL_DELIVERY_TIMEOUT } from '@data/timeouts';
 
 const RESET_EMAIL_SUBJECT = 'CloudCasa Password Change';
 const RESET_LINK_PATTERN = /href="(https:\/\/[^"]*\/lo\/reset\?ticket=[^"]*)"/;
@@ -51,7 +52,21 @@ async function waitForEmail(options: {
     `${process.env.TESTMAIL_API_URL}?apikey=${apiKey}&namespace=${namespace}&tag=${tag}` +
     `&livequery=true&timestamp_from=${afterTimestamp}`;
 
-  const response = await fetch(url);
+  // livequery keeps the request open until an email arrives, so an empty inbox would hang mutely
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(EMAIL_DELIVERY_TIMEOUT) });
+  } catch (error) {
+    const reason = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    throw new Error(
+      `No "${subject}" email in testmail.app inbox "${tag}" within ${EMAIL_DELIVERY_TIMEOUT / 1000}s (${reason}) — the inbox also stays empty once the testmail.app quota is used up`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(`testmail.app answered ${response.status} for inbox "${tag}"`);
+  }
+
   const data = (await response.json()) as TestmailResponse;
 
   const email = data.emails?.find(candidate =>

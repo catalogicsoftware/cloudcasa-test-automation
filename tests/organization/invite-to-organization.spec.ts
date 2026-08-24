@@ -2,8 +2,11 @@
 // seed: seed.spec.ts
 import { test, expect } from '@fixtures/auth';
 import { getInvitation } from '@utils/testmail';
+import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Invite organization', () => {
+  test.describe.configure({ timeout: EMAIL_TEST_TIMEOUT });
+
   test('Check if user invited in proper organization', async ({
     loggedInPage,
     dashboardPage,

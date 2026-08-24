@@ -1,14 +1,21 @@
-import type { S3StorageTarget } from '../types/data/storage';
+import type {
+  AzureCredentials,
+  AzureTargetSpec,
+  S3Credentials,
+  S3StorageTarget,
+  S3TargetSpec,
+  StorageTargetCase,
+  StorageTargetSpec,
+} from '../types/data/storage';
 
 const INVALID_CREDENTIALS = {
   accessKey: 'AKIAAQAINVALIDKEY0000',
   secretKey: 'aqa-invalid-secret-key-0000000000000000',
 };
 
-export const fakeStorageName = (): string => `aqa-storage-${Date.now()}`;
-
 /** Hostname that resolves nowhere, so the backend probe fails on connectivity alone. */
 export const unreachableTarget: S3StorageTarget = {
+  provider: 'aws',
   bucket: 'aqa-unreachable-bucket',
   endpoint: 'https://s3.aqa-invalid.example.com:9000',
   ...INVALID_CREDENTIALS,
@@ -20,6 +27,7 @@ export const unreachableTarget: S3StorageTarget = {
  * into a required select and would change the form's gating.
  */
 export const deniedCredentialsTarget: S3StorageTarget = {
+  provider: 'aws',
   bucket: 'aqa-nonexistent-bucket-19283746',
   endpoint: 'https://storage.googleapis.com',
   ...INVALID_CREDENTIALS,
@@ -40,3 +48,124 @@ export const acceptedEndpoints: string[] = [
   'https://s3.example.com:9000/',
   'https://192.168.1.10:9000',
 ];
+
+/**
+ * Working S3 targets the happy-path test runs against — one generated test per
+ * entry, so adding a target is a catalog entry plus a CI credential. Bucket,
+ * endpoint and region live here rather than in the environment: all three are
+ * asserted against the storage table, and endpoint handling is itself under
+ * test (CC-659→663). Only the credential pair comes from the environment.
+ */
+export const s3TargetCatalog: S3TargetSpec[] = [
+  {
+    label: 'AWS S3',
+    credentials: 'AWS',
+    // The table prints the backend's provider_type, which is lower case.
+    provider: 'aws',
+    bucket: 'cloudcasa-staging-testbucket',
+    endpoint: 'https://s3.amazonaws.com',
+    region: 'us-east-1',
+  },
+  {
+    label: 'DataCore',
+    credentials: 'DATA_CORE',
+    provider: 'aws',
+    listedProvider: 'datacore',
+    bucket: 'cc-dv-test',
+    endpoint: 'https://catalogic-demo.cloud.datacore.com',
+  },
+];
+
+/** Same rules as the S3 catalog: what the storage table asserts lives here, the service principal comes from the environment. */
+export const azureTargetCatalog: AzureTargetSpec[] = [
+  {
+    label: 'Azure Blob',
+    credentials: 'AZURE',
+    // The table prints the backend's provider_type, which is lower case.
+    provider: 'azure',
+    // Unconfirmed until a service principal exists (see docs/superpowers/specs/2026-08-23-provider-agnostic-storage-wizard-design.md).
+    resourceGroup: 'cloudcasa-staging-rg',
+    storageAccount: 'cloudcasastagingaqa',
+    region: 'eastus',
+  },
+];
+
+/** Splits a catalog into the entries the environment can run and the entries that must report a skip. */
+const partitionByCredentials = <S, C>(
+  catalog: S[],
+  resolve: (spec: S) => C | undefined,
+): { configured: (S & C)[]; unconfigured: S[] } => {
+  const configured: (S & C)[] = [];
+  const unconfigured: S[] = [];
+
+  for (const spec of catalog) {
+    const credentials = resolve(spec);
+    if (credentials) {
+      configured.push({ ...spec, ...credentials });
+    } else {
+      unconfigured.push(spec);
+    }
+  }
+
+  return { configured, unconfigured };
+};
+
+/** A half-set credential group is a typo, not a target left unconfigured on purpose, so it must not read as a skip. */
+const resolveGroup = <T extends Record<string, string>>(
+  label: string,
+  variables: { [K in keyof T]: string },
+): T | undefined => {
+  const resolved = Object.entries(variables).map(([key, variable]) => ({
+    key,
+    variable,
+    value: process.env[variable],
+  }));
+  const missing = resolved.filter(entry => !entry.value);
+
+  if (missing.length === resolved.length) {
+    return undefined;
+  }
+  if (missing.length) {
+    throw new Error(
+      `Target "${label}" is half-configured: ${missing.map(entry => entry.variable).join(', ')} not set`,
+    );
+  }
+
+  return Object.fromEntries(resolved.map(entry => [entry.key, entry.value])) as T;
+};
+
+const resolveS3Credentials = (spec: S3TargetSpec): S3Credentials | undefined =>
+  resolveGroup<S3Credentials>(spec.label, {
+    accessKey: `${spec.credentials}_ACCESS_KEY`,
+    secretKey: `${spec.credentials}_SECRET_KEY`,
+  });
+
+const resolveAzureCredentials = (spec: AzureTargetSpec): AzureCredentials | undefined =>
+  resolveGroup<AzureCredentials>(spec.label, {
+    tenantId: `${spec.credentials}_TENANT_ID`,
+    clientId: `${spec.credentials}_CLIENT_ID`,
+    clientSecret: `${spec.credentials}_CLIENT_SECRET`,
+    subscriptionId: `${spec.credentials}_SUBSCRIPTION_ID`,
+  });
+
+/** Every provider in one list, and both halves generate a test: missing credentials must surface as a skip, not as an absent test. */
+export const objectStorageTargets = (): {
+  configured: StorageTargetCase[];
+  unconfigured: StorageTargetSpec[];
+} => {
+  const s3 = partitionByCredentials(s3TargetCatalog, resolveS3Credentials);
+  const azure = partitionByCredentials(azureTargetCatalog, resolveAzureCredentials);
+
+  return {
+    configured: [...s3.configured, ...azure.configured],
+    unconfigured: [...s3.unconfigured, ...azure.unconfigured],
+  };
+};
+
+/** Names the variables one entry is waiting for, for the skip reason. */
+export const credentialVariables = (spec: StorageTargetSpec): string =>
+  spec.provider === 'azure'
+    ? ['TENANT_ID', 'CLIENT_ID', 'CLIENT_SECRET', 'SUBSCRIPTION_ID']
+        .map(variable => `${spec.credentials}_${variable}`)
+        .join('/')
+    : `${spec.credentials}_ACCESS_KEY/${spec.credentials}_SECRET_KEY`;

@@ -1,5 +1,6 @@
 import { expect, Page, test } from '@playwright/test';
 import { Container } from '@page-fatory/container';
+import { BACKEND_PROBE_TIMEOUT } from '@data/timeouts';
 
 /**
  * Global notification area. Backend validation failures surface here and
@@ -14,11 +15,9 @@ export class Toast {
 
   /**
    * Asserts on the host's text rather than a single toast element: the host is
-   * a zero-size wrapper, so a visibility check never passes. Backend-side
-   * validation (bucket reachability, credentials) runs on save and can take
-   * tens of seconds, hence the explicit timeout instead of the 5s default.
+   * a zero-size wrapper, so a visibility check never passes.
    */
-  async shouldShowError(message: RegExp, timeout = 90000): Promise<void> {
+  async shouldShowError(message: RegExp, timeout = BACKEND_PROBE_TIMEOUT): Promise<void> {
     await test.step(`Error notification should report "${message}"`, async () => {
       await expect(this.notifications.getLocator(), {
         message: `No notification matching ${message} appeared`,
