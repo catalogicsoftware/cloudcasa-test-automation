@@ -116,32 +116,35 @@ Create each as a **Secret text** credential in Jenkins
 (_Manage Jenkins → Credentials_); the ID is referenced in the `withCredentials([...])`
 block of the `Jenkinsfile`. Current IDs used:
 
-| Env var                | Jenkins credential ID           |
-| ---------------------- | ------------------------------- |
-| `BASE_URL`             | `cloudcasa-base-url`            |
-| `CC_EMAIL`             | `cloudcasa-cc-email`            |
-| `CC_PASSWORD`          | `cloudcasa-cc-password`         |
-| `TESTMAIL_NAMESPACE`   | `cloudcasa-testmail-namespace`  |
-| `TESTMAIL_API_KEY`     | `cloudcasa-testmail-api-key`    |
-| `CLOUDCASA_API_URL`    | `cloudcasa-api-url`             |
-| `CLOUDCASA_API_TOKEN`  | `cloudcasa-api-token`           |
-| `TESTMAIL_API_URL`     | `cloudcasa-testmail-api-url`    |
-| `AWS_ACCESS_KEY`       | `cloudcasa-aws-access-key`      |
-| `AWS_SECRET_KEY`       | `cloudcasa-aws-secret-key`      |
-| `DATA_CORE_ACCESS_KEY` | `cloudcasa-datacore-access-key` |
-| `DATA_CORE_SECRET_KEY` | `cloudcasa-datacore-secret-key` |
+| Env var                 | Jenkins credential ID             |
+| ----------------------- | --------------------------------- |
+| `BASE_URL`              | `cloudcasa-base-url`              |
+| `CC_EMAIL`              | `cloudcasa-cc-email`              |
+| `CC_PASSWORD`           | `cloudcasa-cc-password`           |
+| `TESTMAIL_NAMESPACE`    | `cloudcasa-testmail-namespace`    |
+| `TESTMAIL_API_KEY`      | `cloudcasa-testmail-api-key`      |
+| `CLOUDCASA_API_URL`     | `cloudcasa-api-url`               |
+| `CLOUDCASA_API_TOKEN`   | `cloudcasa-api-token`             |
+| `TESTMAIL_API_URL`      | `cloudcasa-testmail-api-url`      |
+| `AWS_ACCESS_KEY`        | `cloudcasa-aws-access-key`        |
+| `AWS_SECRET_KEY`        | `cloudcasa-aws-secret-key`        |
+| `DATA_CORE_ACCESS_KEY`  | `cloudcasa-datacore-access-key`   |
+| `DATA_CORE_SECRET_KEY`  | `cloudcasa-datacore-secret-key`   |
+| `AZURE_TENANT_ID`       | `cloudcasa-azure-tenant-id`       |
+| `AZURE_CLIENT_ID`       | `cloudcasa-azure-client-id`       |
+| `AZURE_CLIENT_SECRET`   | `cloudcasa-azure-client-secret`   |
+| `AZURE_SUBSCRIPTION_ID` | `cloudcasa-azure-subscription-id` |
 
-The four storage credentials name the target they unlock: `data/storage.ts` reads
+Each storage credential names the target it unlocks: `data/storage.ts` reads
 `<PREFIX>_ACCESS_KEY` / `<PREFIX>_SECRET_KEY` per catalog entry, so adding an S3 target to
 CI is a catalog entry plus one credential pair under its prefix. A target whose group is
 entirely unset skips itself and the run stays green; a group where only part is set fails
 the test naming the missing variables, which is what catches a typo in a credential ID
 instead of turning it into a permanent skip.
 
-Azure needs a service principal and is not wired yet — once one exists, add
-`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_SUBSCRIPTION_ID`
-the same way (suggested IDs `cloudcasa-azure-tenant-id`, `-client-id`, `-client-secret`,
-`-subscription-id`). Until then the Azure target reports a skip naming those four.
+Azure is one group of four rather than a pair: the form offers no authentication other
+than a service principal, and the subscription id belongs with it because it identifies the
+account. The other Azure facts (resource group, storage account, region) are in the catalog.
 
 `withCredentials` fails the build when an ID does not exist, so create the credential in
 Jenkins **before** adding its line to the `Jenkinsfile`.

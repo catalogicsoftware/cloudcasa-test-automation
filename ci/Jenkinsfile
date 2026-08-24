@@ -45,6 +45,10 @@ pipeline {
                         string(credentialsId: 'cloudcasa-aws-secret-key', variable: 'IN_AWS_SECRET'),
                         string(credentialsId: 'cloudcasa-datacore-access-key', variable: 'IN_DATACORE_KEY'),
                         string(credentialsId: 'cloudcasa-datacore-secret-key', variable: 'IN_DATACORE_SECRET'),
+                        string(credentialsId: 'cloudcasa-azure-tenant-id', variable: 'IN_AZURE_TENANT'),
+                        string(credentialsId: 'cloudcasa-azure-client-id', variable: 'IN_AZURE_CLIENT'),
+                        string(credentialsId: 'cloudcasa-azure-client-secret', variable: 'IN_AZURE_SECRET'),
+                        string(credentialsId: 'cloudcasa-azure-subscription-id', variable: 'IN_AZURE_SUBSCRIPTION'),
                     ]) {
                         withEnv(['CI=true']) {
                             // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
@@ -65,6 +69,10 @@ pipeline {
                                     export AWS_SECRET_KEY="$IN_AWS_SECRET"
                                     export DATA_CORE_ACCESS_KEY="$IN_DATACORE_KEY"
                                     export DATA_CORE_SECRET_KEY="$IN_DATACORE_SECRET"
+                                    export AZURE_TENANT_ID="$IN_AZURE_TENANT"
+                                    export AZURE_CLIENT_ID="$IN_AZURE_CLIENT"
+                                    export AZURE_CLIENT_SECRET="$IN_AZURE_SECRET"
+                                    export AZURE_SUBSCRIPTION_ID="$IN_AZURE_SUBSCRIPTION"
                                     npx playwright test
                                 '''
                             }
