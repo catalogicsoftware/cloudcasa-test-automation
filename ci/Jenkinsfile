@@ -40,6 +40,11 @@ pipeline {
                         string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
                         string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
                         string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
+                        // Storage targets skip themselves without these, so a run stays green while covering nothing.
+                        string(credentialsId: 'cloudcasa-aws-access-key', variable: 'IN_AWS_KEY'),
+                        string(credentialsId: 'cloudcasa-aws-secret-key', variable: 'IN_AWS_SECRET'),
+                        string(credentialsId: 'cloudcasa-datacore-access-key', variable: 'IN_DATACORE_KEY'),
+                        string(credentialsId: 'cloudcasa-datacore-secret-key', variable: 'IN_DATACORE_SECRET'),
                     ]) {
                         withEnv(['CI=true']) {
                             // --ipc=host: the default 64 MB /dev/shm crashes parallel Chromiums.
@@ -56,6 +61,10 @@ pipeline {
                                     export CLOUDCASA_API_URL="$IN_API_URL"
                                     export CLOUDCASA_API_TOKEN="$IN_API_CODE"
                                     export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
+                                    export AWS_ACCESS_KEY="$IN_AWS_KEY"
+                                    export AWS_SECRET_KEY="$IN_AWS_SECRET"
+                                    export DATA_CORE_ACCESS_KEY="$IN_DATACORE_KEY"
+                                    export DATA_CORE_SECRET_KEY="$IN_DATACORE_SECRET"
                                     npx playwright test
                                 '''
                             }
