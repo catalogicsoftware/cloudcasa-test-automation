@@ -84,9 +84,10 @@ export const azureTargetCatalog: AzureTargetSpec[] = [
     // The table prints the backend's provider_type, which is lower case.
     provider: 'azure',
     // Unconfirmed until a service principal exists (see docs/superpowers/specs/2026-08-23-provider-agnostic-storage-wizard-design.md).
-    resourceGroup: 'cloudcasa-staging-rg',
-    storageAccount: 'cloudcasastagingaqa',
-    region: 'eastus',
+    resourceGroup: 'jgarner-rg',
+    storageAccount: 'ccplaywright',
+    region: 'East US',
+    listedRegion: 'eastus',
   },
 ];
 

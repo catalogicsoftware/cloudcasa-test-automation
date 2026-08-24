@@ -270,10 +270,12 @@ export class AddObjectStorageWizard extends BaseDrawer {
 
   /** Everything typed on the Provider step must survive to the Summary — except the credentials, which are never echoed. */
   async shouldSummarizeTarget(target: StorageTarget): Promise<void> {
+    const region = target.listedRegion ?? target.region;
+
     await this.shouldSummarize(
       target.provider === 'azure'
-        ? [target.resourceGroup, target.storageAccount, target.region]
-        : [target.bucket, target.endpoint, target.region],
+        ? [target.resourceGroup, target.storageAccount, region]
+        : [target.bucket, target.endpoint, region],
     );
   }
 

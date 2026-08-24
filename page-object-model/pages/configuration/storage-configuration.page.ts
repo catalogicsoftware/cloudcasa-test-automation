@@ -78,17 +78,18 @@ export class StorageConfigurationPage extends BasePage {
   async shouldListObjectStorage(name: string, target: StorageTargetSpec): Promise<void> {
     // The backend reports its own provider_type, which is not always the radio the wizard was filled through.
     const listedProvider = target.listedProvider ?? target.provider;
+    const listedRegion = target.listedRegion ?? target.region;
 
     // Azure names a storage account instead of a bucket and has no endpoint, so it owns fewer cells.
     await this.shouldListStorage(
       name,
       target.provider === 'azure'
-        ? { Provider: listedProvider, Region: target.region }
+        ? { Provider: listedProvider, Region: listedRegion }
         : {
             Provider: listedProvider,
             'Bucket name': target.bucket,
             Endpoint: target.endpoint,
-            Region: target.region,
+            Region: listedRegion,
           },
     );
   }

@@ -7,13 +7,14 @@ export type S3Credentials = {
   secretKey: string;
 };
 
-export type S3StorageTarget = S3Credentials & {
-  provider: 'aws';
-  bucket: string;
-  endpoint: string;
-  /** Only AWS endpoints need it — the form turns Region into a mandatory select. */
-  region?: string;
-};
+export type S3StorageTarget = S3Credentials &
+  ListedAs & {
+    provider: 'aws';
+    bucket: string;
+    endpoint: string;
+    /** Only AWS endpoints need it — the form turns Region into a mandatory select. */
+    region?: string;
+  };
 
 /** What every catalog entry declares on top of its provider fields. */
 export type TargetCatalogEntry = {
@@ -21,8 +22,14 @@ export type TargetCatalogEntry = {
   label: string;
   /** Environment prefix of the credentials. */
   credentials: string;
-  /** Provider cell of the storage table when the backend classifies the target as its own type (e.g. DataCore behind the aws radio). */
+};
+
+/** What the app echoes back where it differs from what the wizard was filled with. */
+type ListedAs = {
+  /** Provider cell when the backend classifies the target as its own type (e.g. DataCore behind the aws radio). */
   listedProvider?: string;
+  /** Region as the backend normalises it (e.g. "East US" selected, "eastus" echoed). */
+  listedRegion?: string;
 };
 
 /** A catalog entry: everything except the credential pair, which comes from the environment. */
@@ -40,14 +47,15 @@ export type AzureCredentials = {
 };
 
 /** The form asks for no container: the storage account inside its resource group is the whole target. */
-export type AzureStorageTarget = AzureCredentials & {
-  provider: 'azure';
-  /** Only when the case needs Government — the form preselects Public. */
-  cloud?: 'Public' | 'Government';
-  resourceGroup: string;
-  storageAccount: string;
-  region: string;
-};
+export type AzureStorageTarget = AzureCredentials &
+  ListedAs & {
+    provider: 'azure';
+    /** Only when the case needs Government — the form preselects Public. */
+    cloud?: 'Public' | 'Government';
+    resourceGroup: string;
+    storageAccount: string;
+    region: string;
+  };
 
 export type AzureTargetSpec = Omit<AzureStorageTarget, keyof AzureCredentials> & TargetCatalogEntry;
 
