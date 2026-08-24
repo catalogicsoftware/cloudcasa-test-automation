@@ -7,6 +7,7 @@ import { Input } from '@page-fatory/input';
 import { BaseDrawer } from './base.drawer';
 import { CcApiRoutes } from '@data/api-routes';
 import { BACKEND_PROBE_TIMEOUT, WIDGET_SWAP_TIMEOUT } from '@data/timeouts';
+import { listedAs } from '@data/storage';
 import { assertResponseOk } from '@utils/generic';
 import type {
   AzureStorageTarget,
@@ -270,7 +271,7 @@ export class AddObjectStorageWizard extends BaseDrawer {
 
   /** Everything typed on the Provider step must survive to the Summary — except the credentials, which are never echoed. */
   async shouldSummarizeTarget(target: StorageTarget): Promise<void> {
-    const region = target.listedRegion ?? target.region;
+    const { region } = listedAs(target);
 
     await this.shouldSummarize(
       target.provider === 'azure'

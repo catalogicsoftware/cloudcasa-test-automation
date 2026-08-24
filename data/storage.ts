@@ -1,4 +1,6 @@
 import type {
+  ListedAs,
+  ProviderType,
   AzureCredentials,
   AzureTargetSpec,
   S3Credentials,
@@ -60,7 +62,6 @@ export const s3TargetCatalog: S3TargetSpec[] = [
   {
     label: 'AWS S3',
     credentials: 'AWS',
-    // The table prints the backend's provider_type, which is lower case.
     provider: 'aws',
     bucket: 'cloudcasa-staging-testbucket',
     endpoint: 'https://s3.amazonaws.com',
@@ -81,9 +82,7 @@ export const azureTargetCatalog: AzureTargetSpec[] = [
   {
     label: 'Azure Blob',
     credentials: 'AZURE',
-    // The table prints the backend's provider_type, which is lower case.
     provider: 'azure',
-    // Unconfirmed until a service principal exists (see docs/superpowers/specs/2026-08-23-provider-agnostic-storage-wizard-design.md).
     resourceGroup: 'jgarner-rg',
     storageAccount: 'ccplaywright',
     region: 'East US',
@@ -162,6 +161,14 @@ export const objectStorageTargets = (): {
     unconfigured: [...s3.unconfigured, ...azure.unconfigured],
   };
 };
+
+/** What the app is expected to show, which is not always what the wizard was filled with — every override is a measured value, never derived. */
+export const listedAs = (
+  target: ListedAs & { provider: ProviderType; region?: string },
+): { provider: string; region?: string } => ({
+  provider: target.listedProvider ?? target.provider,
+  region: target.listedRegion ?? target.region,
+});
 
 /** Names the variables one entry is waiting for, for the skip reason. */
 export const credentialVariables = (spec: StorageTargetSpec): string =>

@@ -7,6 +7,7 @@ import { Table } from '@page-fatory/table';
 import { AddObjectStorageWizard } from '@page-object-model/components/drawers/add-object-storage.drawer';
 import { ConfirmationDialog } from '@page-object-model/components/confirmation-dialog.components';
 import { STORAGE_LIST_RELOAD_TIMEOUT } from '@data/timeouts';
+import { listedAs } from '@data/storage';
 import type { StorageTargetSpec } from '../../../types/data/storage';
 
 export class StorageConfigurationPage extends BasePage {
@@ -77,19 +78,18 @@ export class StorageConfigurationPage extends BasePage {
   /** Every provider detail typed into the wizard must come back out of the storage list. */
   async shouldListObjectStorage(name: string, target: StorageTargetSpec): Promise<void> {
     // The backend reports its own provider_type, which is not always the radio the wizard was filled through.
-    const listedProvider = target.listedProvider ?? target.provider;
-    const listedRegion = target.listedRegion ?? target.region;
+    const listed = listedAs(target);
 
     // Azure names a storage account instead of a bucket and has no endpoint, so it owns fewer cells.
     await this.shouldListStorage(
       name,
       target.provider === 'azure'
-        ? { Provider: listedProvider, Region: listedRegion }
+        ? { Provider: listed.provider, Region: listed.region }
         : {
-            Provider: listedProvider,
+            Provider: listed.provider,
             'Bucket name': target.bucket,
             Endpoint: target.endpoint,
-            Region: listedRegion,
+            Region: listed.region,
           },
     );
   }

@@ -25,7 +25,7 @@ export type TargetCatalogEntry = {
 };
 
 /** What the app echoes back where it differs from what the wizard was filled with. */
-type ListedAs = {
+export type ListedAs = {
   /** Provider cell when the backend classifies the target as its own type (e.g. DataCore behind the aws radio). */
   listedProvider?: string;
   /** Region as the backend normalises it (e.g. "East US" selected, "eastus" echoed). */
