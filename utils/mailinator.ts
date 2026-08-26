@@ -3,12 +3,9 @@ import { EMAIL_DELIVERY_TIMEOUT } from '@data/timeouts';
 
 const DEFAULT_API_URL = 'https://mailinator.com/api/v2';
 
-// Mailinator caps how long one `wait` request may hold, so the deadline is spent over
-// several long-polls rather than one.
-const POLL_WINDOW = 25_000;
-
-// Floor between long-polls, so a server that ignores `wait` cannot turn the loop into a busy wait.
-const MIN_POLL_INTERVAL = 1_000;
+// The documented `wait` long-poll and the stream endpoint both answer 400 on the Verified Pro
+// plan, so arrival is detected by polling.
+const POLL_INTERVAL = 2_000;
 
 const RESET_EMAIL_SUBJECT = 'CloudCasa Password Change';
 const RESET_LINK_PATTERN = /href="(https:\/\/[^"]*\/lo\/reset\?ticket=[^"]*)"/;
@@ -73,8 +70,6 @@ export async function resetInbox(address: string): Promise<number> {
   return Date.now();
 }
 
-// `wait` holds the request open until mail lands, but it resolves on ANY message, so a
-// non-matching subject re-arms the poll with whatever is left of the deadline.
 async function waitForEmail(options: {
   inbox: string;
   subject: string | RegExp;
@@ -84,13 +79,9 @@ async function waitForEmail(options: {
   const deadline = Date.now() + EMAIL_DELIVERY_TIMEOUT;
 
   while (Date.now() < deadline) {
-    const startedAt = Date.now();
-    const window = Math.min(POLL_WINDOW, deadline - startedAt);
-
-    const { msgs } = await callApi<InboxResponse>(
-      `/inboxes/${inbox}?wait=${Math.ceil(window / 1000)}s&sort=descending`,
-      { timeout: window + 15_000 },
-    );
+    const { msgs } = await callApi<InboxResponse>(`/inboxes/${inbox}?sort=descending`, {
+      timeout: 15_000,
+    });
 
     const email = msgs?.find(
       candidate => candidate.time >= afterTimestamp && matchesSubject(candidate.subject, subject),
@@ -99,10 +90,7 @@ async function waitForEmail(options: {
       return email;
     }
 
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < MIN_POLL_INTERVAL) {
-      await sleep(MIN_POLL_INTERVAL - elapsed);
-    }
+    await sleep(POLL_INTERVAL);
   }
 
   throw new Error(
@@ -111,24 +99,12 @@ async function waitForEmail(options: {
   );
 }
 
-// Mailinator hands back the raw MIME part, so a quoted-printable body still carries its soft
-// line breaks and `=XX` escapes; decoding unconditionally would corrupt a plain-text body.
-function decodeBody(body: string): string {
-  if (!/=\r?\n|=3D/.test(body)) {
-    return body;
-  }
-
-  return body
-    .replace(/=\r?\n/g, '')
-    .replace(/=([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-}
-
 async function emailHtml(id: string): Promise<string> {
   const body = await callApi<Record<string, string>>(`/messages/${id}/texthtml`, {
     timeout: 30_000,
   });
 
-  return decodeBody(body['text/html'] ?? '');
+  return body['text/html'] ?? '';
 }
 
 function extractLink(html: string, subject: string, linkPattern: RegExp): string {
