@@ -30,8 +30,8 @@ ones crash with unhelpful renderer errors (`--shm-size=1gb` is the alternative).
 
 `workers` is deliberately low rather than "number of cores": every test logs in as
 the same CloudCasa account (`CC_EMAIL`), so parallel workers share that account's
-server-side state — organization membership, pending invites. Per-file testmail
-tags and self-healing invite cleanup keep the current suite independent, but
+server-side state — organization membership, pending invites. Per-file Mailinator
+inboxes and self-healing invite cleanup keep the current suite independent, but
 raising this further needs the same check for whatever tests exist by then.
 
 This intentionally does **not** use the declarative `agent { dockerfile { ... } }`
@@ -121,11 +121,10 @@ block of the `Jenkinsfile`. Current IDs used:
 | `BASE_URL`              | `cloudcasa-base-url`              |
 | `CC_EMAIL`              | `cloudcasa-cc-email`              |
 | `CC_PASSWORD`           | `cloudcasa-cc-password`           |
-| `TESTMAIL_NAMESPACE`    | `cloudcasa-testmail-namespace`    |
-| `TESTMAIL_API_KEY`      | `cloudcasa-testmail-api-key`      |
+| `MAILINATOR_DOMAIN`     | `cloudcasa-mailinator-domain`     |
+| `MAILINATOR_API_TOKEN`  | `cloudcasa-mailinator-api-token`  |
 | `CLOUDCASA_API_URL`     | `cloudcasa-api-url`               |
 | `CLOUDCASA_API_TOKEN`   | `cloudcasa-api-token`             |
-| `TESTMAIL_API_URL`      | `cloudcasa-testmail-api-url`      |
 | `AWS_ACCESS_KEY`        | `cloudcasa-aws-access-key`        |
 | `AWS_SECRET_KEY`        | `cloudcasa-aws-secret-key`        |
 | `DATA_CORE_ACCESS_KEY`  | `cloudcasa-datacore-access-key`   |
@@ -149,12 +148,10 @@ account. The other Azure facts (resource group, storage account, region) are in 
 `withCredentials` fails the build when an ID does not exist, so create the credential in
 Jenkins **before** adding its line to the `Jenkinsfile`.
 
-`TESTMAIL_API_URL` is required, despite `.env.example` documenting a default
-value — `utils/testmail.ts` reads `process.env.TESTMAIL_API_URL` directly with
-no fallback, so outside local dev (where a real `.env` file supplies it) it
-must be provided explicitly, e.g. via this credential. Confirmed by a live
-run: every testmail-dependent test failed with `TypeError: Failed to parse
-URL from undefined?apikey=...` until this credential was added.
+`MAILINATOR_API_URL` needs no credential: `utils/mailinator.ts` falls back to the
+public API base. This is deliberate — its testmail predecessor documented a default
+it did not implement, and a live run lost every email test to `TypeError: Failed to
+parse URL from undefined?apikey=...` before the missing credential was added.
 
 Five more credentials are used by the publish steps in the `post` block. The
 Allure, Nexus and Teams ones run on the node; the Testmo one runs inside the test
@@ -421,7 +418,7 @@ any Jenkins setup where the agent runs the suite in a Docker container.
   are visible via `docker inspect`/`docker top` to anyone with host docker
   access, which would defeat Jenkins' own console masking). Since this app's
   env-var contract requires exactly those names (`CLOUDCASA_API_TOKEN`,
-  `CC_PASSWORD`, `TESTMAIL_API_KEY`), the
+  `CC_PASSWORD`, `MAILINATOR_API_TOKEN`), the
   `Jenkinsfile` binds credentials to innocuous placeholder names (`IN_*`) and
   `export`s the real names from inside the container's own `sh` step, where
   the filter no longer applies.
@@ -449,10 +446,9 @@ safe.directory <path>` for both the repo's top-level path _and_ its literal
   build **context**, not just where Jenkins looks for the file, so
   `dir 'ci'` builds with context `ci/` (no `package.json` there). Point the
   context at the repo root instead.
-- **`TESTMAIL_API_URL` undefined** → every testmail-dependent test fails with
-  `TypeError: Failed to parse URL from undefined?apikey=...`. See "Required
-  credentials" above — despite what `.env.example` implies, there is no
-  code-level default.
+- **`MAILINATOR_DOMAIN` undefined** → every email test fails its `mailboxAccess`
+  fixture with a 404 against `/domains/undefined/...`. The domain must also be the
+  Verified Pro private domain: clearing an inbox is rejected on public ones.
 - **`curl: (60) SSL certificate problem: self-signed certificate in certificate
 chain`** on the Nexus upload. The Nexus certificate chains up to the corporate
   (AD) CA, which the agent doesn't trust; `curl` has its own trust store, so a

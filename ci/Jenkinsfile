@@ -35,11 +35,10 @@ pipeline {
                         string(credentialsId: 'cloudcasa-base-url', variable: 'IN_BASE_URL'),
                         string(credentialsId: 'cloudcasa-cc-email', variable: 'IN_CC_EMAIL'),
                         string(credentialsId: 'cloudcasa-cc-password', variable: 'IN_CC_PASS'),
-                        string(credentialsId: 'cloudcasa-testmail-namespace', variable: 'IN_TESTMAIL_NS'),
-                        string(credentialsId: 'cloudcasa-testmail-api-key', variable: 'IN_TESTMAIL_APICODE'),
+                        string(credentialsId: 'cloudcasa-mailinator-domain', variable: 'IN_MAILINATOR_DOMAIN'),
+                        string(credentialsId: 'cloudcasa-mailinator-api-token', variable: 'IN_MAILINATOR_CODE'),
                         string(credentialsId: 'cloudcasa-api-url', variable: 'IN_API_URL'),
                         string(credentialsId: 'cloudcasa-api-token', variable: 'IN_API_CODE'),
-                        string(credentialsId: 'cloudcasa-testmail-api-url', variable: 'IN_TESTMAIL_URL'),
                         // Storage targets skip themselves without these, so a run stays green while covering nothing.
                         string(credentialsId: 'cloudcasa-aws-access-key', variable: 'IN_AWS_KEY'),
                         string(credentialsId: 'cloudcasa-aws-secret-key', variable: 'IN_AWS_SECRET'),
@@ -60,11 +59,10 @@ pipeline {
                                     export BASE_URL="$IN_BASE_URL"
                                     export CC_EMAIL="$IN_CC_EMAIL"
                                     export CC_PASSWORD="$IN_CC_PASS"
-                                    export TESTMAIL_NAMESPACE="$IN_TESTMAIL_NS"
-                                    export TESTMAIL_API_KEY="$IN_TESTMAIL_APICODE"
+                                    export MAILINATOR_DOMAIN="$IN_MAILINATOR_DOMAIN"
+                                    export MAILINATOR_API_TOKEN="$IN_MAILINATOR_CODE"
                                     export CLOUDCASA_API_URL="$IN_API_URL"
                                     export CLOUDCASA_API_TOKEN="$IN_API_CODE"
-                                    export TESTMAIL_API_URL="$IN_TESTMAIL_URL"
                                     export AWS_ACCESS_KEY="$IN_AWS_KEY"
                                     export AWS_SECRET_KEY="$IN_AWS_SECRET"
                                     export DATA_CORE_ACCESS_KEY="$IN_DATACORE_KEY"

@@ -11,6 +11,7 @@ import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
+import { checkMailboxAccess } from '@utils/mailinator';
 
 type Pages = {
   loginPage: LoginPage;
@@ -29,6 +30,7 @@ type Pages = {
 
 type WorkerFixtures = {
   apiAuthCheck: void;
+  mailboxAccess: void;
 };
 
 export const test = base.extend<Pages, WorkerFixtures>({
@@ -96,6 +98,16 @@ export const test = base.extend<Pages, WorkerFixtures>({
       await use();
     },
     { scope: 'worker', auto: true },
+  ],
+
+  // Requested only by tests that read an inbox, so a run without Mailinator configured still
+  // exercises everything else instead of failing wholesale.
+  mailboxAccess: [
+    async ({}, use) => {
+      await checkMailboxAccess();
+      await use();
+    },
+    { scope: 'worker' },
   ],
 });
 
