@@ -17,9 +17,7 @@ export default defineConfig({
   reporter: [['html'], ['allure-playwright'], ['junit', { outputFile: 'test-results/junit.xml' }]],
   use: {
     baseURL: process.env.BASE_URL || 'https://home.cloudcasa.io',
-    // Without these Playwright waits forever on a stuck action, so a broken
-    // locator burns the whole test budget and reports only "test timeout".
-    actionTimeout: 15 * 1000,
+    // No actionTimeout: ~20s of added latency in CI made a 15s cap fail 17 of 19 tests.
     navigationTimeout: 30 * 1000,
     ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
