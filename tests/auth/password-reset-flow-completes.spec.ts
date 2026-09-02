@@ -3,11 +3,11 @@
 
 import { faker } from '@faker-js/faker';
 import { test } from '../../fixtures/base';
-import { getPasswordResetLink } from '../../utils/testmail';
+import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
-import { TestmailTag, testmailAddress } from '@data/testmail-tags';
+import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
-const RESET_PWD_EMAIL = testmailAddress(TestmailTag.RESET_PWD);
+const RESET_PWD_EMAIL = mailboxAddress(MailinatorInbox.RESET_PWD);
 
 test.describe('Forgot Password Flow', () => {
   test.describe.configure({ timeout: EMAIL_TEST_TIMEOUT });
@@ -16,6 +16,7 @@ test.describe('Forgot Password Flow', () => {
     loginPage,
     resetPasswordPage,
     dashboardPage,
+    mailboxAccess,
   }) => {
     const newPassword = `${faker.internet.password({ length: 16, memorable: false })}1!Aa`;
 
@@ -23,7 +24,7 @@ test.describe('Forgot Password Flow', () => {
     await loginPage.goto();
     await loginPage.clickForgotPassword();
     await loginPage.emailInput.fill(RESET_PWD_EMAIL);
-    const requestedAt = Date.now();
+    const requestedAt = await resetInbox(RESET_PWD_EMAIL);
     await loginPage.signInButton.click();
 
     // Expected: success banner confirms the email was sent

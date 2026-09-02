@@ -7,7 +7,7 @@ export const BACKEND_PROBE_TIMEOUT = 150_000;
 /** The storage list reloads itself once the wizard closes, regularly past the 5s default. */
 export const STORAGE_LIST_RELOAD_TIMEOUT = 30_000;
 
-/** testmail's livequery holds the request open until the email arrives, so the wait needs its own bound. */
+/** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
 /** Delivery plus the UI around it, so an undelivered email is reported as such instead of as a test timeout. */

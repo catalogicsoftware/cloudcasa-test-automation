@@ -2,7 +2,7 @@
 // seed: seed.spec.ts
 
 import { test } from '../../fixtures/base';
-import { TestmailTag, testmailAddress } from '@data/testmail-tags';
+import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 test.beforeEach(async ({ loginPage }) => {
   await loginPage.goto();
@@ -14,7 +14,7 @@ test.describe('Forgot Password Flow', () => {
     await loginPage.forgotPasswordButton.click();
 
     // 3. Fill the email field with a registered email
-    await loginPage.emailInput.fill(testmailAddress(TestmailTag.RESET_PWD));
+    await loginPage.emailInput.fill(mailboxAddress(MailinatorInbox.RESET_PWD));
 
     // 4. Click "Reset Password"
     await loginPage.signInButton.click();

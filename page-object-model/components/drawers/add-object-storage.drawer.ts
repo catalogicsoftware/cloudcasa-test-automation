@@ -322,11 +322,7 @@ export class AddObjectStorageWizard extends BaseDrawer {
     });
   }
 
-  /**
-   * Registered before the click so the response cannot land before the listener.
-   * Own wait rather than Button.clickAndWaitForResponse: this call outlives the
-   * 15s actionTimeout that helper inherits, and a rejection must not assert 2xx.
-   */
+  /** Registered before the click; own wait since a rejection here must not assert 2xx. */
   private waitForCreateResponse(): Promise<Response> {
     return this.page.waitForResponse(
       result => this.isObjectStoresUrl(result.url()) && result.request().method() === 'POST',

@@ -2,7 +2,7 @@ import { test as base } from './base';
 import { Page } from '@playwright/test';
 import { LOGIN_REDIRECT_TIMEOUT } from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
-import { TestmailTag, testmailAddress } from '@data/testmail-tags';
+import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 type AuthFixtures = {
   loggedInPage: Page;
@@ -33,7 +33,7 @@ export const test = base.extend<AuthFixtures>({
     await use(page);
   },
 
-  // invitedUser/the signup-flow invitee use a FIXED testmail address (one tag
+  // invitedUser/the signup-flow invitee use a FIXED Mailinator address (one inbox
   // = one owning test file), so nothing makes a run's invite unique — repeatability
   // relies entirely on cleanup running. Cleaning both before and after (like
   // cleanRegisteredUserState below) makes this self-healing: if a prior run
@@ -50,7 +50,8 @@ export const test = base.extend<AuthFixtures>({
   // address): it never completes signup — reCAPTCHA blocks it — so its
   // invitation stays PENDING and would shadow the next run's invitation email.
   cancelSignupInvitationAfterTest: async ({ ccApi }, use) => {
-    const clean = () => ccApi.orgInvites.cancelByEmail(testmailAddress(TestmailTag.INVITE_SIGNUP));
+    const clean = () =>
+      ccApi.orgInvites.cancelByEmail(mailboxAddress(MailinatorInbox.INVITE_SIGNUP));
     await clean();
     await use();
     await clean();

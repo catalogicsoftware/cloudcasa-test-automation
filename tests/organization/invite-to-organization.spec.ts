@@ -1,7 +1,7 @@
 // spec: specs/configuration/user-management.md (TC-USR-002)
 // seed: seed.spec.ts
 import { test, expect } from '@fixtures/auth';
-import { getInvitation } from '@utils/testmail';
+import { getInvitation, resetInbox } from '@utils/mailinator';
 import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Invite organization', () => {
@@ -14,6 +14,7 @@ test.describe('Invite organization', () => {
     usersConfigurationPage,
     invitedUser,
     cancelInvitationAfterTest,
+    mailboxAccess,
   }) => {
     await dashboardPage.userHelpModal.closeModal();
 
@@ -27,9 +28,8 @@ test.describe('Invite organization', () => {
     await usersConfigurationPage.inviteUser.click();
     await usersConfigurationPage.inviteUserDrawer.isOpen();
 
-    // Taken right before sending so getInvitation waits for THIS email,
-    // not a stale one already sitting in the inbox.
-    const invitedAt = Date.now();
+    // Wiping right before sending leaves getInvitation nothing to match but THIS email.
+    const invitedAt = await resetInbox(invitedUser.email);
     await usersConfigurationPage.inviteUserDrawer.sendInvitation(invitedUser);
 
     // The sent invitation appears on the Invitations tab as PENDING

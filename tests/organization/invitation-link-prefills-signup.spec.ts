@@ -2,7 +2,7 @@
 // rest of the scenario is blocked by a live reCAPTCHA on the signup form)
 // seed: seed.spec.ts
 import { test, expect } from '@fixtures/auth';
-import { getInvitation } from '@utils/testmail';
+import { getInvitation, resetInbox } from '@utils/mailinator';
 import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
 import { fakeInvitedUser } from '@data/user';
 
@@ -13,12 +13,13 @@ test.describe('Invite organization', () => {
     ccApi,
     signUpPage,
     cancelSignupInvitationAfterTest,
+    mailboxAccess,
   }) => {
     const invitedUser = fakeInvitedUser();
 
     // Arrange through the API — sending the invitation through the UI is
     // already covered by invite-to-organization.spec.ts.
-    const invitedAt = Date.now();
+    const invitedAt = await resetInbox(invitedUser.email);
     await ccApi.inviteUser(invitedUser);
 
     // Fetch the invitation email and confirm it names the inviting organization.
