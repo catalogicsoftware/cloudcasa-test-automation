@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
-import { Container } from '@page-fatory/container';
-import { Button } from '@page-fatory/button';
+import { Container } from '@page-factory/container';
+import { Button } from '@page-factory/button';
 
 /**
  * Base class for CloudCasa side drawers (Create Invitation, Add application hook,

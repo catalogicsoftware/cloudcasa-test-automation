@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { Button } from '@page-fatory/button';
+import { Button } from '@page-factory/button';
 
 export class UserHelpModal {
   readonly closeButton: Button;

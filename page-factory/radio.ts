@@ -1,5 +1,5 @@
 import test, { expect, Locator } from '@playwright/test';
-import { LocatorProps } from '../types/page-facotory/component';
+import { LocatorProps } from '../types/page-factory/component';
 import { Component } from './component';
 
 /** A whole radio group can share one locator — `value` then picks the button inside it. */

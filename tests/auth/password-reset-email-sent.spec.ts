@@ -1,7 +1,7 @@
 // spec: specs/auth/login.md
 // seed: seed.spec.ts
 
-import { test } from '../../fixtures/base';
+import { test } from '@fixtures/base';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 test.beforeEach(async ({ loginPage }) => {

@@ -1,9 +1,9 @@
 import test, { expect, Page } from '@playwright/test';
 import { BasePage } from '../base.page';
-import { Button } from '@page-fatory/button';
-import { Container } from '@page-fatory/container';
-import { Link } from '@page-fatory/link';
-import { Table } from '@page-fatory/table';
+import { Button } from '@page-factory/button';
+import { Container } from '@page-factory/container';
+import { Link } from '@page-factory/link';
+import { Table } from '@page-factory/table';
 import { AddObjectStorageWizard } from '@page-object-model/components/drawers/add-object-storage.drawer';
 import { ConfirmationDialog } from '@page-object-model/components/confirmation-dialog.components';
 import { STORAGE_LIST_RELOAD_TIMEOUT } from '@data/timeouts';

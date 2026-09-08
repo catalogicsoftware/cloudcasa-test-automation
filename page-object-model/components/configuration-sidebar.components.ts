@@ -1,5 +1,5 @@
-import { expect, Page, test } from '@playwright/test';
-import { Link } from '@page-fatory/link';
+import { Page } from '@playwright/test';
+import { Link } from '@page-factory/link';
 
 export type ConfigSection =
   | 'Policies'
