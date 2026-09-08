@@ -1,5 +1,5 @@
 import test, { expect } from '@playwright/test';
-import { LocatorProps } from '../types/page-facotory/component';
+import { LocatorProps } from '../types/page-factory/component';
 import { Component } from './component';
 
 type FillProps = { validateValue?: boolean; secret?: boolean } & LocatorProps;

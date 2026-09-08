@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
-import { Button } from '@page-fatory/button';
-import { Link } from '@page-fatory/link';
-import { Title } from '@page-fatory/title';
+import { Button } from '@page-factory/button';
+import { Title } from '@page-factory/title';
 
 export class UserMenu {
   // Header button showing the user's first name and current organization —

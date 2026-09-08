@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { Link } from '@page-fatory/link';
+import { Link } from '@page-factory/link';
 
 export class TopNav {
   readonly dashboardLink: Link;

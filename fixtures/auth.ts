@@ -12,6 +12,7 @@ type AuthFixtures = {
   usersApi: UsersApi;
   cleanRegisteredUserState: void;
   createdObjectStorages: string[];
+  createdPolicies: string[];
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -107,6 +108,25 @@ export const test = base.extend<AuthFixtures>({
     }
     if (failures.length) {
       throw new Error(`Object storage teardown failed for ${failures.join('; ')}`);
+    }
+  },
+
+  // Same contract as createdObjectStorages: names are pushed before the save, so a
+  // failure between creating the policy and removing it through the UI still cleans up.
+  createdPolicies: async ({ ccApi }, use) => {
+    const names: string[] = [];
+    await use(names);
+
+    const failures: string[] = [];
+    for (const name of names) {
+      try {
+        await ccApi.policies.deleteByName(name);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+    if (failures.length) {
+      throw new Error(`Policy teardown failed for ${failures.join('; ')}`);
     }
   },
 });

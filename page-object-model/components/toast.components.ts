@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
-import { Container } from '@page-fatory/container';
+import { Container } from '@page-factory/container';
 import { BACKEND_PROBE_TIMEOUT } from '@data/timeouts';
 
 /**

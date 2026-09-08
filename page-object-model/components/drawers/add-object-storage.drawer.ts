@@ -1,9 +1,9 @@
 import { expect, Page, Response, test } from '@playwright/test';
-import { Button } from '@page-fatory/button';
-import { Checkbox } from '@page-fatory/checkbox';
-import { Dropdown } from '@page-fatory/dropdown';
-import { Radio } from '@page-fatory/radio';
-import { Input } from '@page-fatory/input';
+import { Button } from '@page-factory/button';
+import { Checkbox } from '@page-factory/checkbox';
+import { Dropdown } from '@page-factory/dropdown';
+import { Radio } from '@page-factory/radio';
+import { Input } from '@page-factory/input';
 import { BaseDrawer } from './base.drawer';
 import { CcApiRoutes } from '@data/api-routes';
 import { BACKEND_PROBE_TIMEOUT, WIDGET_SWAP_TIMEOUT } from '@data/timeouts';

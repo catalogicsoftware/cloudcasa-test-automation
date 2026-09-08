@@ -4,5 +4,6 @@ export enum CcApiRoutes {
   ROLES = 'api/v1/roles',
   KUBECLUSTERS = 'api/v1/kubeclusters',
   OBJECT_STORES = 'api/v1/objectstores',
+  POLICIES = 'api/v1/policies',
   USERS = 'api/v1/users',
 }

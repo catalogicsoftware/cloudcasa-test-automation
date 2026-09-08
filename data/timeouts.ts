@@ -7,6 +7,9 @@ export const BACKEND_PROBE_TIMEOUT = 150_000;
 /** The storage list reloads itself once the wizard closes, regularly past the 5s default. */
 export const STORAGE_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The policies list reloads itself the same way once the Add policy dialog closes. */
+export const POLICY_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
@@ -15,6 +18,9 @@ export const EMAIL_TEST_TIMEOUT = EMAIL_DELIVERY_TIMEOUT + 90_000;
 
 /** The sign-in redirect chain runs through the IdP and back, so it outlasts a plain navigation. */
 export const LOGIN_REDIRECT_TIMEOUT = 45_000;
+
+/** Test budget for the policy journey: two reloads and a removal on top of a sign-in that staging regularly makes twice. */
+export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;

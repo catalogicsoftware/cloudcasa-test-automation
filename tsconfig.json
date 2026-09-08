@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2020"],
+    "lib": ["ES2022"],
     "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
@@ -13,7 +13,7 @@
       "@fixtures/*": ["fixtures/*"],
       "@data/*": ["data/*"],
       "@utils/*": ["utils/*"],
-      "@page-fatory/*": ["page-factory/*"]
+      "@page-factory/*": ["page-factory/*"]
     }
   },
   "include": ["**/*.ts"],

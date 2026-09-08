@@ -1,5 +1,5 @@
 import { expect, Locator, Page, test } from '@playwright/test';
-import { ComponentProps, LocatorProps } from '../types/page-facotory/component';
+import { ComponentProps, LocatorProps } from '../types/page-factory/component';
 import { capitalizeFirstLetter } from '../utils/generic';
 
 export abstract class Component {
@@ -91,8 +91,8 @@ export abstract class Component {
   ): Promise<void> {
     await test.step(`Click on ${this.typeOf} "${this.componentName}" and wait for URL to match "${urlPattern}"`, async () => {
       const locator = this.getLocator(locatorProps);
-      await locator.click({ timeout: 10000 }).catch(error => {
-        if (!/Timeout/i.test(error.message)) {
+      await locator.click({ timeout: 10000 }).catch((error: unknown) => {
+        if (!(error instanceof Error) || !/Timeout/i.test(error.message)) {
           throw error;
         }
       });

@@ -1,4 +1,4 @@
-import { test } from '../../fixtures/base';
+import { test } from '@fixtures/base';
 
 test.beforeEach(async ({ loginPage }) => {
   // 1. Navigate to /login

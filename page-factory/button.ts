@@ -1,6 +1,6 @@
 import test from '@playwright/test';
 import { assertResponseOk } from '@utils/generic';
-import { LocatorProps } from '../types/page-facotory/component';
+import { LocatorProps } from '../types/page-factory/component';
 import { Component } from './component';
 
 export class Button extends Component {

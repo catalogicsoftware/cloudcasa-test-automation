@@ -1,6 +1,6 @@
 import { expect, Page, test } from '@playwright/test';
-import { Button } from '@page-fatory/button';
-import { Container } from '@page-fatory/container';
+import { Button } from '@page-factory/button';
+import { Container } from '@page-factory/container';
 import { DIALOG_CLOSE_TIMEOUT } from '@data/timeouts';
 
 /**

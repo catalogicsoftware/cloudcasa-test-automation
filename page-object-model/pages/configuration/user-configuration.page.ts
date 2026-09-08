@@ -1,9 +1,9 @@
 import test, { expect, Page } from '@playwright/test';
 import { BasePage } from '../base.page';
-import { Container } from '@page-fatory/container';
-import { Link } from '@page-fatory/link';
-import { Button } from '@page-fatory/button';
-import { Table } from '@page-fatory/table';
+import { Container } from '@page-factory/container';
+import { Link } from '@page-factory/link';
+import { Button } from '@page-factory/button';
+import { Table } from '@page-factory/table';
 import { InviteUserDrawer } from '@page-object-model/components/drawers/user-invitation-drawer.components';
 
 export class UsersConfigurationPage extends BasePage {
