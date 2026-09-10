@@ -24,6 +24,10 @@ const randomTime = (): TimeOfDay => {
 /** 30 is the cap the retention field itself carries on the free plan; a larger value silently disables "Add to schedule". */
 const randomRetention = (): number => faker.number.int({ min: 1, max: 30 });
 
+/** The Custom field takes a raw expression, so the same random time is restated in 24-hour form. */
+const cronAt = (time: TimeOfDay): string =>
+  `${time.minute} ${time.meridiem === 'PM' ? (time.hour % 12) + 12 : time.hour % 12} * * *`;
+
 /**
  * One generated test per frequency, the way the storage catalog generates one per
  * target. Values are random on every run so the assertions cannot pass by matching
@@ -31,31 +35,43 @@ const randomRetention = (): number => faker.number.int({ min: 1, max: 30 });
  * Intervals start at 1 on purpose — that is the branch where the app drops the
  * "every N" clause entirely.
  */
-export const scheduleCases = (): ScheduleCase[] => [
-  {
-    label: 'daily',
-    frequency: 'Daily',
-    interval: faker.number.int({ min: 1, max: 7 }),
-    time: randomTime(),
-    retentionDays: randomRetention(),
-  },
-  {
-    label: 'weekly',
-    frequency: 'Weekly',
-    weekday: faker.helpers.arrayElement(WEEKDAYS),
-    time: randomTime(),
-    retentionDays: randomRetention(),
-  },
-  {
-    // Days past 28 do not exist in every month, so the form is fed a day every month has.
-    label: 'monthly',
-    frequency: 'Monthly',
-    dayOfMonth: faker.number.int({ min: 1, max: 28 }),
-    interval: faker.number.int({ min: 1, max: 6 }),
-    time: randomTime(),
-    retentionDays: randomRetention(),
-  },
-];
+export const scheduleCases = (): ScheduleCase[] => {
+  const customTime = randomTime();
+
+  return [
+    {
+      label: 'daily',
+      frequency: 'Daily',
+      interval: faker.number.int({ min: 1, max: 7 }),
+      time: randomTime(),
+      retentionDays: randomRetention(),
+    },
+    {
+      label: 'weekly',
+      frequency: 'Weekly',
+      weekday: faker.helpers.arrayElement(WEEKDAYS),
+      time: randomTime(),
+      retentionDays: randomRetention(),
+    },
+    {
+      // Days past 28 do not exist in every month, so the form is fed a day every month has.
+      label: 'monthly',
+      frequency: 'Monthly',
+      dayOfMonth: faker.number.int({ min: 1, max: 28 }),
+      interval: faker.number.int({ min: 1, max: 6 }),
+      time: randomTime(),
+      retentionDays: randomRetention(),
+    },
+    {
+      // The one frequency reachable only as a raw expression; the app validates nothing here and lets the backend refuse.
+      label: 'custom cron',
+      frequency: 'Custom',
+      cron: cronAt(customTime),
+      time: customTime,
+      retentionDays: randomRetention(),
+    },
+  ];
+};
 
 const pad = (value: number): string => String(value).padStart(2, '0');
 
@@ -76,8 +92,14 @@ export const expectedRule = (schedule: ScheduleCase): string => {
       const onDay = `${at}, on day ${schedule.dayOfMonth} of the month`;
       return schedule.interval > 1 ? `${onDay}, every ${schedule.interval} months` : onDay;
     }
+    case 'Custom':
+      return at;
   }
 };
 
 export const expectedRetention = (schedule: ScheduleCase): string =>
   `${schedule.retentionDays} day(s)`;
+
+/** The list labels every cron-built schedule "Hourly", whatever the expression actually says. */
+export const expectedFrequency = (schedule: ScheduleCase): string =>
+  schedule.frequency === 'Custom' ? 'Hourly' : schedule.frequency;

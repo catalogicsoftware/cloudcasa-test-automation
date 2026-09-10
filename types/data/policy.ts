@@ -1,5 +1,5 @@
-/** Schedule frequencies the free plan can actually build: Hourly is disabled and Custom cron silently no-ops (see data/policies.ts). */
-export type ScheduleFrequency = 'Daily' | 'Weekly' | 'Monthly';
+/** Hourly is the one frequency the free plan disables outright; Custom reaches the same rules through a raw cron. */
+export type ScheduleFrequency = 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
 
 export type TimeOfDay = {
   /** 1-12, as typed into the HH field. */
@@ -31,4 +31,7 @@ export type MonthlySchedule = ScheduleBase & {
   interval: number;
 };
 
-export type ScheduleCase = DailySchedule | WeeklySchedule | MonthlySchedule;
+/** `time` is what the expression encodes, kept alongside it so the rule text stays derivable. */
+export type CustomSchedule = ScheduleBase & { frequency: 'Custom'; cron: string };
+
+export type ScheduleCase = DailySchedule | WeeklySchedule | MonthlySchedule | CustomSchedule;

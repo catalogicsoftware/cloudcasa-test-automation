@@ -5,7 +5,7 @@ import { Container } from '@page-factory/container';
 import { Table } from '@page-factory/table';
 import { AddPolicyDialog } from '@page-object-model/components/dialogs/add-policy.dialog';
 import { ProceedConfirmation } from '@page-object-model/components/proceed-confirmation.components';
-import { expectedRetention, expectedRule } from '@data/policies';
+import { expectedFrequency, expectedRetention, expectedRule } from '@data/policies';
 import { POLICY_LIST_RELOAD_TIMEOUT } from '@data/timeouts';
 import type { ScheduleCase } from '../../../types/data/policy';
 
@@ -53,7 +53,7 @@ export class PoliciesConfigurationPage extends BasePage {
       await this.policiesTable.shouldHaveCellValue(
         name,
         'Schedules',
-        new RegExp(schedule.frequency, 'i'),
+        new RegExp(expectedFrequency(schedule), 'i'),
       );
       await this.policiesTable.shouldHaveCellValue(name, 'Schedules', expectedRule(schedule));
       await this.policiesTable.shouldHaveCellValue(name, 'Schedules', expectedRetention(schedule));

@@ -56,10 +56,4 @@ test.describe('Policies', () => {
       await policiesConfigurationPage.policiesTable.shouldNotHaveRow(name);
     });
   }
-
-  // Actual: "Add to schedule" does nothing for Custom — the cron field is ng-valid, the
-  // button is enabled, and no schedule is added, so Create policy stays disabled.
-  // Expected: the cron builds a schedule like every other frequency.
-  // eslint-disable-next-line playwright/expect-expect
-  test.fixme('Create a policy with a custom cron schedule', () => {});
 });

@@ -24,6 +24,7 @@ export class AddPolicyDialog {
   readonly hours: Input;
   readonly minutes: Input;
   readonly meridiem: Dropdown;
+  readonly cron: Input;
   readonly retentionDays: Input;
   readonly hourly: Button;
   readonly addToSchedule: Button;
@@ -71,6 +72,11 @@ export class AddPolicyDialog {
       page,
       locator: `${DIALOG} select[id*="select_isPM"]:visible`,
       name: 'AM/PM',
+    });
+    this.cron = new Input({
+      page,
+      locator: `${DIALOG} input[id*="input_cron"]`,
+      name: 'Custom cron',
     });
     this.retentionDays = new Input({
       page,
@@ -166,11 +172,17 @@ export class AddPolicyDialog {
           await this.dayOfMonth.fill(String(schedule.dayOfMonth));
           await this.everyMonths.fill(String(schedule.interval));
           break;
+        case 'Custom':
+          await this.cron.fill(schedule.cron);
+          break;
       }
 
-      await this.hours.fill(String(schedule.time.hour));
-      await this.minutes.fill(String(schedule.time.minute));
-      await this.meridiem.selectOption(schedule.time.meridiem);
+      // Custom spells the time out inside the expression, and keeps no HH/MM/AM-PM fields of its own.
+      if (schedule.frequency !== 'Custom') {
+        await this.hours.fill(String(schedule.time.hour));
+        await this.minutes.fill(String(schedule.time.minute));
+        await this.meridiem.selectOption(schedule.time.meridiem);
+      }
       await this.retentionDays.fill(String(schedule.retentionDays));
 
       // Asserted before the click: an out-of-range field only disables the button, so clicking
