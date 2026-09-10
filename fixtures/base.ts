@@ -7,6 +7,7 @@ import { ConfigurationPage } from '@page-object-model/pages/configuration/config
 import { User, InvitedUser, defaultUser, invitedUser, registeredUser } from '@data/user';
 import { UsersConfigurationPage } from '@page-object-model/pages/configuration/user-configuration.page';
 import { StorageConfigurationPage } from '@page-object-model/pages/configuration/storage-configuration.page';
+import { PoliciesConfigurationPage } from '@page-object-model/pages/configuration/policies-configuration.page';
 import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
@@ -20,6 +21,7 @@ type Pages = {
   configurationPage: ConfigurationPage;
   usersConfigurationPage: UsersConfigurationPage;
   storageConfigurationPage: StorageConfigurationPage;
+  policiesConfigurationPage: PoliciesConfigurationPage;
   toast: Toast;
   signUpPage: SignUpPage;
   adminUser: User;
@@ -63,6 +65,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   storageConfigurationPage: async ({ page }, use) => {
     await use(new StorageConfigurationPage(page));
+  },
+  policiesConfigurationPage: async ({ page }, use) => {
+    await use(new PoliciesConfigurationPage(page));
   },
   toast: async ({ page }, use) => {
     await use(new Toast(page));
