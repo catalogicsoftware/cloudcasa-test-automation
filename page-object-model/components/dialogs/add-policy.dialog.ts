@@ -1,10 +1,12 @@
-import { expect, Page, test } from '@playwright/test';
+import { expect, Page, Response, test } from '@playwright/test';
 import { faker } from '@faker-js/faker';
 import { Button } from '@page-factory/button';
 import { Checkbox } from '@page-factory/checkbox';
 import { Container } from '@page-factory/container';
 import { Dropdown } from '@page-factory/dropdown';
 import { Input } from '@page-factory/input';
+import { CcApiRoutes } from '@data/api-routes';
+import { BACKEND_PROBE_TIMEOUT } from '@data/timeouts';
 import type { ScheduleCase } from '../../../types/data/policy';
 
 const DIALOG = 'mat-dialog-container app-policy';
@@ -156,8 +158,25 @@ export class AddPolicyDialog {
     }).click();
   }
 
+  /** The Custom branch alone, so an expression the backend refuses needs no rule text to go with it. */
+  async addCronSchedule(cron: string, retentionDays: number): Promise<void> {
+    await test.step(`Add a cron schedule "${cron}"`, async () => {
+      await this.selectFrequency('Custom');
+      await this.cron.fill(cron);
+      await this.retentionDays.fill(String(retentionDays));
+      await this.addToSchedule.shouldBeEnabled();
+      await this.addToSchedule.click();
+    });
+  }
+
   /** Fills the frequency's own fields, the shared time and the retention, then adds the schedule. */
   async addSchedule(schedule: ScheduleCase): Promise<void> {
+    // Custom spells the time out inside the expression and keeps no HH/MM/AM-PM fields of its own.
+    if (schedule.frequency === 'Custom') {
+      await this.addCronSchedule(schedule.cron, schedule.retentionDays);
+      return;
+    }
+
     await test.step(`Add a ${schedule.label} schedule`, async () => {
       await this.selectFrequency(schedule.frequency);
 
@@ -172,17 +191,11 @@ export class AddPolicyDialog {
           await this.dayOfMonth.fill(String(schedule.dayOfMonth));
           await this.everyMonths.fill(String(schedule.interval));
           break;
-        case 'Custom':
-          await this.cron.fill(schedule.cron);
-          break;
       }
 
-      // Custom spells the time out inside the expression, and keeps no HH/MM/AM-PM fields of its own.
-      if (schedule.frequency !== 'Custom') {
-        await this.hours.fill(String(schedule.time.hour));
-        await this.minutes.fill(String(schedule.time.minute));
-        await this.meridiem.selectOption(schedule.time.meridiem);
-      }
+      await this.hours.fill(String(schedule.time.hour));
+      await this.minutes.fill(String(schedule.time.minute));
+      await this.meridiem.selectOption(schedule.time.meridiem);
       await this.retentionDays.fill(String(schedule.retentionDays));
 
       // Asserted before the click: an out-of-range field only disables the button, so clicking
@@ -191,6 +204,26 @@ export class AddPolicyDialog {
       // Nothing is added to the policy until this button is pressed, and Create policy stays disabled until then.
       await this.addToSchedule.click();
     });
+  }
+
+  async createExpectingRejection(): Promise<number> {
+    return test.step('Create the policy expecting the backend to reject it', async () => {
+      await this.createPolicy.shouldBeEnabled();
+
+      const response = this.waitForCreateResponse();
+      await this.createPolicy.click();
+      return (await response).status();
+    });
+  }
+
+  /** Registered before the click; own wait since a rejection here must not assert 2xx. */
+  private waitForCreateResponse(): Promise<Response> {
+    return this.page.waitForResponse(
+      result =>
+        new URL(result.url()).pathname === `/${CcApiRoutes.POLICIES}` &&
+        result.request().method() === 'POST',
+      { timeout: BACKEND_PROBE_TIMEOUT },
+    );
   }
 
   async create(): Promise<void> {

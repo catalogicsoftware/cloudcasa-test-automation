@@ -103,3 +103,9 @@ export const expectedRetention = (schedule: ScheduleCase): string =>
 /** The list labels every cron-built schedule "Hourly", whatever the expression actually says. */
 export const expectedFrequency = (schedule: ScheduleCase): string =>
   schedule.frequency === 'Custom' ? 'Hourly' : schedule.frequency;
+
+/** Sub-daily protection is a paid feature, and nothing but the backend says so — the cron field takes the expression. */
+export const SUB_DAILY_CRON = '*/30 * * * *';
+
+export const FREE_PLAN_CRON_ERROR =
+  /Schedules more frequent than daily are not allowed for free accounts/i;
