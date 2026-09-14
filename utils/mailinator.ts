@@ -1,11 +1,17 @@
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 import { EMAIL_DELIVERY_TIMEOUT } from '@data/timeouts';
+import { reserveApiCall } from '@utils/mailinator-quota';
 
 const DEFAULT_API_URL = 'https://mailinator.com/api/v2';
 
 // The documented `wait` long-poll and the stream endpoint both answer 400 on the Verified Pro
 // plan, so arrival is detected by polling.
-const POLL_INTERVAL = 2_000;
+// Every poll is a call against a 700/day quota, so the interval backs off: a full 90s wait costs
+// 8 calls instead of the 45 a fixed 2s interval spent.
+const FIRST_POLL_DELAY = 5_000;
+const POLL_INTERVAL_START = 3_000;
+const POLL_INTERVAL_MAX = 15_000;
+const POLL_BACKOFF = 1.6;
 
 const RESET_EMAIL_SUBJECT = 'CloudCasa Password Change';
 const RESET_LINK_PATTERN = /href="(https:\/\/[^"]*\/lo\/reset\?ticket=[^"]*)"/;
@@ -46,6 +52,8 @@ function apiUrl(path: string): string {
 // run artifacts through a logged URL.
 async function callApi<T>(path: string, init: RequestInit & { timeout: number }): Promise<T> {
   const { timeout, ...options } = init;
+  reserveApiCall(path);
+
   const response = await fetch(apiUrl(path), {
     ...options,
     headers: { Authorization: process.env.MAILINATOR_API_TOKEN ?? '' },
@@ -53,7 +61,14 @@ async function callApi<T>(path: string, init: RequestInit & { timeout: number })
   });
 
   if (!response.ok) {
-    throw new Error(`Mailinator answered ${response.status} for ${path}: ${await response.text()}`);
+    const body = await response.text();
+    if ([401, 403, 429].includes(response.status)) {
+      throw new Error(
+        `Mailinator refused the request (${response.status}) for ${path}: ${body}. Either the daily ` +
+          'quota is spent or MAILINATOR_API_TOKEN/MAILINATOR_DOMAIN is wrong.',
+      );
+    }
+    throw new Error(`Mailinator answered ${response.status} for ${path}: ${body}`);
   }
 
   return (await response.json()) as T;
@@ -77,6 +92,10 @@ async function waitForEmail(options: {
 }): Promise<MessageSummary> {
   const { inbox, subject, afterTimestamp } = options;
   const deadline = Date.now() + EMAIL_DELIVERY_TIMEOUT;
+  let interval = POLL_INTERVAL_START;
+
+  // No email arrives faster than this, so the first poll would only burn a call on an empty inbox.
+  await sleep(FIRST_POLL_DELAY);
 
   while (Date.now() < deadline) {
     const { msgs } = await callApi<InboxResponse>(`/inboxes/${inbox}?sort=descending`, {
@@ -90,7 +109,8 @@ async function waitForEmail(options: {
       return email;
     }
 
-    await sleep(POLL_INTERVAL);
+    await sleep(interval);
+    interval = Math.min(interval * POLL_BACKOFF, POLL_INTERVAL_MAX);
   }
 
   throw new Error(
