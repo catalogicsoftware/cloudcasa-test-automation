@@ -7,7 +7,7 @@ const DEFAULT_API_URL = 'https://mailinator.com/api/v2';
 // The documented `wait` long-poll and the stream endpoint both answer 400 on the Verified Pro
 // plan, so arrival is detected by polling.
 // Every poll is a call against a 700/day quota, so the interval backs off: a full 90s wait costs
-// 9 calls instead of the 45 a fixed 2s interval spent.
+// 8 calls instead of the 45 a fixed 2s interval spent.
 const FIRST_POLL_DELAY = 5_000;
 const POLL_INTERVAL_START = 3_000;
 const POLL_INTERVAL_MAX = 15_000;
@@ -92,6 +92,10 @@ async function waitForEmail(options: {
 }): Promise<MessageSummary> {
   const { inbox, subject, afterTimestamp } = options;
   const deadline = Date.now() + EMAIL_DELIVERY_TIMEOUT;
+  let interval = POLL_INTERVAL_START;
+
+  // No email arrives faster than this, so the first poll would only burn a call on an empty inbox.
+  await sleep(FIRST_POLL_DELAY);
 
   while (Date.now() < deadline) {
     const { msgs } = await callApi<InboxResponse>(`/inboxes/${inbox}?sort=descending`, {
@@ -105,7 +109,8 @@ async function waitForEmail(options: {
       return email;
     }
 
-    await sleep(POLL_INTERVAL);
+    await sleep(interval);
+    interval = Math.min(interval * POLL_BACKOFF, POLL_INTERVAL_MAX);
   }
 
   throw new Error(

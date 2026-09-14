@@ -8,8 +8,22 @@ const DEFAULT_DAILY_BUDGET = 400;
 
 const utcDay = (): string => new Date().toISOString().slice(0, 10);
 
-const dailyBudget = (): number =>
-  Number(process.env.MAILINATOR_DAILY_BUDGET) || DEFAULT_DAILY_BUDGET;
+// A typo must not silently restore the default, and 0 is a valid "block every call" setting.
+const dailyBudget = (): number => {
+  const configured = process.env.MAILINATOR_DAILY_BUDGET?.trim();
+  if (!configured) {
+    return DEFAULT_DAILY_BUDGET;
+  }
+
+  const budget = Number(configured);
+  if (!Number.isInteger(budget) || budget < 0) {
+    throw new Error(
+      `MAILINATOR_DAILY_BUDGET must be a non-negative whole number, got "${configured}"`,
+    );
+  }
+
+  return budget;
+};
 
 const callsRecorded = (file: string): number => {
   try {
