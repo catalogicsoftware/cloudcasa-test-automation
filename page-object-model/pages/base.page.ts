@@ -1,5 +1,4 @@
 import { Page } from '@playwright/test';
-import { CcApiRoutes } from 'data/api-routes';
 
 export abstract class BasePage {
   constructor(protected readonly page: Page) {}

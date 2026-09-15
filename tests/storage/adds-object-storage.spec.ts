@@ -62,6 +62,7 @@ test.describe('Backup storage', () => {
 
   // A catalog entry whose credentials are not in the environment still reports itself, as a skip.
   for (const spec of unconfigured) {
+    // eslint-disable-next-line playwright/expect-expect
     test(`Add ${spec.label} object storage succeeds end-to-end`, () => {
       test.skip(true, `No credentials for ${spec.label} — set ${credentialVariables(spec)}`);
     });

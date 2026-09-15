@@ -1,9 +1,9 @@
 import { Page } from '@playwright/test';
 import { CcApiRoutes } from '@data/api-routes';
-import { Container } from '@page-fatory/container';
-import { Input } from '@page-fatory/input';
-import { Dropdown } from '@page-fatory/dropdown';
-import { Button } from '@page-fatory/button';
+import { Container } from '@page-factory/container';
+import { Input } from '@page-factory/input';
+import { Dropdown } from '@page-factory/dropdown';
+import { Button } from '@page-factory/button';
 import type { InvitedUser } from '../../../types/data/user';
 
 // Exact pathname match (not a substring check) so this can't accidentally

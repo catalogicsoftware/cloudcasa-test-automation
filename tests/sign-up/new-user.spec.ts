@@ -1,11 +1,12 @@
-import { expect, test } from '@fixtures/base';
-import { fakeUser } from 'data/fake';
+import { test } from '@fixtures/base';
 
 test.beforeEach(async ({ signUpPage }) => {
-  // Navigae to Sign Up
+  // Navigate to Sign Up
   await signUpPage.goto();
 });
 
 test.describe('Sign Up New User', () => {
-  test('Create New Cloud Casas Customer', async ({ signUpPage }) => {});
+  // Body was never written — the test reported green while asserting nothing.
+  // eslint-disable-next-line playwright/expect-expect
+  test.fixme('Create New Cloud Casas Customer', () => {});
 });

@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { LocatorProps } from 'types/page-facotory/component';
+import { LocatorProps } from '../types/page-factory/component';
 import { Component } from './component';
 
 export class Checkbox extends Component {

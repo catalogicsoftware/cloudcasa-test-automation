@@ -8,12 +8,20 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
-    "*.{ts,json,md}": "prettier --write"
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": "prettier --write"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.5.0",
     "@playwright/test": "1.61.1",
     "@testmo/testmo-cli": "^1.5.0",
@@ -22,10 +30,14 @@
     "allure-playwright": "^3.10.2",
     "diff": "^9.0.0",
     "dotenv": "^16.4.0",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-playwright": "^2.11.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "pdf-parse": "^2.4.5",
     "prettier": "^3.9.4",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.69.0"
   }
 }

@@ -1,9 +1,9 @@
 ﻿import { readFile } from 'fs/promises';
 import { Page } from '@playwright/test';
 import { BasePage } from '../base.page';
-import { Input } from '@page-fatory/input';
-import { Link } from '@page-fatory/link';
-import { Button } from '@page-fatory/button';
+import { Input } from '@page-factory/input';
+import { Link } from '@page-factory/link';
+import { Button } from '@page-factory/button';
 import { extractPdfText } from '@utils/pdf';
 import { compareText, TextComparisonResult } from '@utils/text-compare';
 

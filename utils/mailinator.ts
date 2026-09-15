@@ -149,6 +149,7 @@ export async function checkMailboxAccess(): Promise<void> {
     throw new Error(
       `Mailinator access check failed: ${(error as Error).message}. ` +
         'Regenerate MAILINATOR_API_TOKEN in the Mailinator UI or check MAILINATOR_DOMAIN.',
+      { cause: error },
     );
   }
 }

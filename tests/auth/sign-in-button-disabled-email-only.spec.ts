@@ -1,7 +1,7 @@
 // spec: specs/auth/login.md
 // seed: seed.spec.ts
 
-import { test, expect } from '../../fixtures/base';
+import { test, expect } from '@fixtures/base';
 
 test.beforeEach(async ({ loginPage }) => {
   await loginPage.goto();

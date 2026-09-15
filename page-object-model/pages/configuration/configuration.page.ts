@@ -1,7 +1,7 @@
 import { BasePage } from '@page-object-model/pages/base.page';
 import { expect, Page, test } from '@playwright/test';
 import { ConfigurationSidebar } from '@page-object-model/components/configuration-sidebar.components';
-import { Container } from '@page-fatory/container';
+import { Container } from '@page-factory/container';
 
 export class ConfigurationPage extends BasePage {
   readonly configurationContainer: Container = new Container({
