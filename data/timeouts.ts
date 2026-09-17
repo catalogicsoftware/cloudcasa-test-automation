@@ -41,3 +41,10 @@ export const DIALOG_CLOSE_TIMEOUT = 30_000;
 
 /** Test budget for a flow that saves a storage: the probe plus the UI around it. */
 export const STORAGE_TEST_TIMEOUT = BACKEND_PROBE_TIMEOUT + 90_000;
+
+/**
+ * Test budget for the reset-link reuse journey: a full mail-driven reset round trip to set
+ * the new password, a second one in cleanup to restore the account's baseline password, plus
+ * a login on top.
+ */
+export const PASSWORD_RESET_REUSE_TEST_TIMEOUT = EMAIL_TEST_TIMEOUT * 2 + LOGIN_REDIRECT_TIMEOUT;
