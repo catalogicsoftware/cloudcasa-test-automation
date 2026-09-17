@@ -22,6 +22,17 @@ export const LOGIN_REDIRECT_TIMEOUT = 45_000;
 /** Test budget for the policy journey: two reloads and a removal on top of a sign-in that staging regularly makes twice. */
 export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
+/** Mirrors playwright.config.ts navigationTimeout: the ceiling for a single top-level navigation. */
+export const NAVIGATION_TIMEOUT = 30_000;
+
+/**
+ * Test budget for the post-login landing check: the initial login navigation, the sign-in
+ * redirect, a dashboard reload, and a clusters navigation can all run back-to-back at their
+ * individual ceilings, plus headroom for assertions and UI settling.
+ */
+export const POST_LOGIN_LANDING_TEST_TIMEOUT =
+  NAVIGATION_TIMEOUT * 3 + LOGIN_REDIRECT_TIMEOUT + 60_000;
+
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;
 
