@@ -2,6 +2,7 @@ import { Page } from '@playwright/test';
 import { Link } from '@page-factory/link';
 
 export class TopNav {
+  readonly planBadge: Link;
   readonly dashboardLink: Link;
   readonly clustersLink: Link;
   readonly databasesLink: Link;
@@ -10,6 +11,11 @@ export class TopNav {
   readonly configurationLink: Link;
 
   constructor(protected readonly page: Page) {
+    this.planBadge = new Link({
+      page,
+      locator: 'a.plan-info',
+      name: 'Plan Badge',
+    });
     this.dashboardLink = new Link({
       page,
       locator: 'ul.navbar-nav a:has-text("Dashboard")',
@@ -36,6 +42,10 @@ export class TopNav {
       locator: 'ul.navbar-nav a:has-text("Configuration")',
       name: 'Configuration',
     });
+  }
+
+  async goToPricingPlans(): Promise<void> {
+    await this.planBadge.click();
   }
 
   async goToDashboard(): Promise<void> {
