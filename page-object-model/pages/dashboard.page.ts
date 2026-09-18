@@ -4,6 +4,7 @@ import { Container } from 'page-factory/container';
 import { UserMenu } from '@page-object-model/components/user-menu.components';
 import { UserHelpModal } from '@page-object-model/components/user-help-modal.components';
 import { TopNav } from '@page-object-model/components/top-nav.components';
+import { SwitchOrganizationDialog } from '@page-object-model/components/dialogs/switch-organization.dialog';
 import { CcApiRoutes } from 'data/api-routes';
 
 export class DashboardPage extends BasePage {
@@ -16,6 +17,7 @@ export class DashboardPage extends BasePage {
   readonly userMenu = new UserMenu(this.page);
   readonly userHelpModal = new UserHelpModal(this.page);
   readonly topNavigationBar = new TopNav(this.page);
+  readonly switchOrganizationDialog = new SwitchOrganizationDialog(this.page);
 
   constructor(page: Page) {
     super(page);

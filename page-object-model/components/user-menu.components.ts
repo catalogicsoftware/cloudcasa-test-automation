@@ -11,6 +11,7 @@ export class UserMenu {
   readonly headerOrganization: Title;
   readonly userMenuEmail: Title;
   readonly userMenuOrganization: Title;
+  readonly switchOrganizationButton: Button;
   readonly logoutButton: Button;
 
   constructor(private readonly page: Page) {
@@ -41,6 +42,11 @@ export class UserMenu {
     });
     // The menu's items are all plain mat-menu-item buttons with no unique class or id,
     // so the item is addressed by its text, same as the main nav links in TopNav.
+    this.switchOrganizationButton = new Button({
+      page,
+      locator: '.sidebar-menu button:has-text("Switch organization")',
+      name: 'Switch organization',
+    });
     this.logoutButton = new Button({
       page,
       locator: '.sidebar-menu button:has-text("Logout")',
@@ -71,5 +77,9 @@ export class UserMenu {
 
   async logout(): Promise<void> {
     await this.logoutButton.clickAndWaitForUrl(/\/login/);
+  }
+
+  async switchOrganization(): Promise<void> {
+    await this.switchOrganizationButton.click();
   }
 }
