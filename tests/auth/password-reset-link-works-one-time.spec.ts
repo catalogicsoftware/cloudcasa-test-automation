@@ -8,7 +8,7 @@ import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.
 import { DashboardPage } from '@page-object-model/pages/dashboard.page';
 import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
-import { PASSWORD_RESET_REUSE_TEST_TIMEOUT } from '@data/timeouts';
+import { PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT } from '@data/timeouts';
 
 const RESET_PWD_EMAIL = mailboxAddress(MailinatorInbox.RESET_PWD);
 
@@ -19,13 +19,14 @@ const RESET_PWD_EMAIL = mailboxAddress(MailinatorInbox.RESET_PWD);
 const BASELINE_PASSWORD = process.env.RESET_PWD_PASSWORD;
 
 test.describe('Authentication', () => {
-  test.describe.configure({ timeout: PASSWORD_RESET_REUSE_TEST_TIMEOUT });
+  test.describe.configure({ timeout: PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT });
 
   test('A password reset link works one time only', async ({
     loginPage,
     resetPasswordPage,
     browser,
     mailboxAccess,
+    resetPwdAccountLock,
   }) => {
     if (!BASELINE_PASSWORD) {
       throw new Error(

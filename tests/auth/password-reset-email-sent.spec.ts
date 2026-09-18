@@ -3,13 +3,19 @@
 
 import { test } from '@fixtures/base';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
+import { PASSWORD_RESET_EMAIL_SENT_TEST_TIMEOUT } from '@data/timeouts';
 
 test.beforeEach(async ({ loginPage }) => {
   await loginPage.goto();
 });
 
 test.describe('Forgot Password Flow', () => {
-  test('Password reset email is sent for a valid email', async ({ loginPage }) => {
+  test.describe.configure({ timeout: PASSWORD_RESET_EMAIL_SENT_TEST_TIMEOUT });
+
+  test('Password reset email is sent for a valid email', async ({
+    loginPage,
+    resetPwdAccountLock,
+  }) => {
     // 2. Click "Forgot password"
     await loginPage.forgotPasswordButton.click();
 

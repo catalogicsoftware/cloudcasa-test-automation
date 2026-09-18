@@ -14,6 +14,7 @@ import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
 import { checkMailboxAccess } from '@utils/mailinator';
+import { acquireLock } from '@utils/mailinator-lock';
 
 type Pages = {
   loginPage: LoginPage;
@@ -30,6 +31,7 @@ type Pages = {
   invitedUser: InvitedUser;
   registeredUser: InvitedUser;
   ccApi: CcApi;
+  resetPwdAccountLock: void;
 };
 
 type WorkerFixtures = {
@@ -109,6 +111,16 @@ export const test = base.extend<Pages, WorkerFixtures>({
     },
     { scope: 'worker', auto: true },
   ],
+
+  // MailinatorInbox.RESET_PWD backs one fixed CloudCasa account shared by every
+  // tests/auth/password-reset-* file, so two of those files running on different workers at the
+  // same time can steal each other's reset email or stomp each other's password change. Requested
+  // only by those files — every other test is unaffected and keeps running fully in parallel.
+  resetPwdAccountLock: async ({}, use) => {
+    const release = await acquireLock('reset-pwd-account');
+    await use();
+    release();
+  },
 
   // Requested only by tests that read an inbox, so a run without Mailinator configured still
   // exercises everything else instead of failing wholesale.
