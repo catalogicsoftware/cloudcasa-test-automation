@@ -4,19 +4,20 @@
 import { faker } from '@faker-js/faker';
 import { test } from '@fixtures/base';
 import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
-import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
+import { PASSWORD_RESET_FLOW_TEST_TIMEOUT } from '@data/timeouts';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 const RESET_PWD_EMAIL = mailboxAddress(MailinatorInbox.RESET_PWD);
 
 test.describe('Forgot Password Flow', () => {
-  test.describe.configure({ timeout: EMAIL_TEST_TIMEOUT });
+  test.describe.configure({ timeout: PASSWORD_RESET_FLOW_TEST_TIMEOUT });
 
   test('User can reset password via the emailed link and log in with the new password', async ({
     loginPage,
     resetPasswordPage,
     dashboardPage,
     mailboxAccess,
+    resetPwdAccountLock,
   }) => {
     const newPassword = `${faker.internet.password({ length: 16, memorable: false })}1!Aa`;
 
