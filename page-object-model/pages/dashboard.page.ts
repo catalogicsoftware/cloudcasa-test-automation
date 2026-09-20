@@ -1,6 +1,7 @@
-import { expect, Page, test } from '@playwright/test';
+import { expect, Locator, Page, test } from '@playwright/test';
 import { BasePage } from './base.page';
 import { Container } from 'page-factory/container';
+import { Link } from '@page-factory/link';
 import { UserMenu } from '@page-object-model/components/user-menu.components';
 import { UserHelpModal } from '@page-object-model/components/user-help-modal.components';
 import { TopNav } from '@page-object-model/components/top-nav.components';
@@ -17,6 +18,33 @@ export class DashboardPage extends BasePage {
   readonly userHelpModal = new UserHelpModal(this.page);
   readonly topNavigationBar = new TopNav(this.page);
 
+  readonly jobStatusCard = new Container({
+    page: this.page,
+    locator: 'app-status',
+    name: 'Job status',
+  });
+  readonly clustersCard = new Container({
+    page: this.page,
+    locator: 'app-account-overview .card:has(a[routerlink="/clusters"])',
+    name: 'Clusters card',
+  });
+  readonly clustersCardLink = new Link({
+    page: this.page,
+    locator: 'app-account-overview a[routerlink="/clusters"]',
+    name: 'Clusters',
+  });
+  readonly cloudProvidersCard = new Container({
+    page: this.page,
+    locator: 'app-account-overview .card:has-text("Cloud providers")',
+    name: 'Cloud providers card',
+  });
+  readonly shortcutsPanel = new Container({
+    page: this.page,
+    locator: 'app-shortcuts',
+    name: 'Shortcuts',
+  });
+  readonly alertsPanel = new Container({ page: this.page, locator: 'app-alerts', name: 'Alerts' });
+
   constructor(page: Page) {
     super(page);
   }
@@ -30,5 +58,41 @@ export class DashboardPage extends BasePage {
       await expect(this.page).toHaveURL(/dashboard/);
       await this.dashboardContainer.shouldBeVisible();
     });
+  }
+
+  /** Job status filter button, e.g. "Running", "Successful", "Partial", "Skipped", "Failed". */
+  jobStatusCounter(label: string): Locator {
+    return this.jobStatusCard.getLocator().locator('button.btn', { hasText: label });
+  }
+
+  /**
+   * The exact stat block (heading + value) for a heading, matched with :text-is() rather than
+   * a substring: "Protected DBs" is a substring of the sibling heading "Size of protected DBs",
+   * and a substring match resolves both, breaking strict mode.
+   */
+  private statBlock(scope: Locator, heading: string): Locator {
+    return scope
+      .locator('.icon-stats')
+      .filter({ has: this.page.locator('h6', { hasText: new RegExp(`^${heading}$`) }) });
+  }
+
+  /** Stat heading inside the clusters card, e.g. "Configured", "Healthy", "Protected". */
+  clustersCardHeading(label: string): Locator {
+    return this.statBlock(this.clustersCard.getLocator(), label).locator('h6');
+  }
+
+  /** Value shown next to a clusters card heading, e.g. the count under "Configured". */
+  clustersCardValue(label: string): Locator {
+    return this.statBlock(this.clustersCard.getLocator(), label).locator('.icon-value');
+  }
+
+  /** Cloud provider link in the cloud providers card, e.g. "Google", "Azure", "Amazon". */
+  cloudProviderLink(name: string): Locator {
+    return this.cloudProvidersCard.getLocator().locator(`a:has(input[alt="${name}"])`);
+  }
+
+  /** Databases counter in the cloud providers card, e.g. "Accounts", "Protected DBs". */
+  databasesCounter(label: string): Locator {
+    return this.statBlock(this.cloudProvidersCard.getLocator(), label).locator('.icon-value');
   }
 }

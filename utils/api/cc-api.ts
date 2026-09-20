@@ -3,6 +3,7 @@ import { RolesApi } from './roles.api';
 import { OrgInvitesApi } from './org-invites.api';
 import { ObjectStoresApi } from './object-stores.api';
 import { PoliciesApi } from './policies.api';
+import { DashboardApi } from './dashboard.api';
 import type { InvitedUser } from '../../types/data/user';
 
 export class CcApi {
@@ -10,12 +11,14 @@ export class CcApi {
   readonly orgInvites: OrgInvitesApi;
   readonly objectStores: ObjectStoresApi;
   readonly policies: PoliciesApi;
+  readonly dashboard: DashboardApi;
 
   constructor(request: APIRequestContext) {
     this.roles = new RolesApi(request);
     this.orgInvites = new OrgInvitesApi(request);
     this.objectStores = new ObjectStoresApi(request);
     this.policies = new PoliciesApi(request);
+    this.dashboard = new DashboardApi(request);
   }
 
   /** Resolves the role name to its id and sends an organization invitation. */
