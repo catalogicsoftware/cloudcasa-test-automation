@@ -1,6 +1,7 @@
 import { expect, Page, test } from '@playwright/test';
 import { BasePage } from './base.page';
 import { Container } from 'page-factory/container';
+import { Link } from '@page-factory/link';
 import { UserMenu } from '@page-object-model/components/user-menu.components';
 import { UserHelpModal } from '@page-object-model/components/user-help-modal.components';
 import { TopNav } from '@page-object-model/components/top-nav.components';
@@ -11,6 +12,15 @@ export class DashboardPage extends BasePage {
     page: this.page,
     locator: 'app-dashboard',
     name: ' Dashboard',
+  });
+
+  // Distinct from TopNav.clustersLink: this one lives inside the dashboard
+  // content itself, so clicking it proves the content is interactive (not
+  // just the surrounding chrome) once the help modal overlay is gone.
+  readonly clustersContentLink = new Link({
+    page: this.page,
+    locator: 'app-dashboard a.text-black:has-text("Clusters")',
+    name: 'Clusters',
   });
 
   readonly userMenu = new UserMenu(this.page);
