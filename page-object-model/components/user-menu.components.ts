@@ -13,6 +13,7 @@ export class UserMenu {
   readonly userMenuOrganization: Title;
   readonly switchOrganizationButton: Button;
   readonly logoutButton: Button;
+  readonly darkModeToggle: Button;
 
   constructor(private readonly page: Page) {
     this.userAndOrganizationButton = new Button({
@@ -52,6 +53,13 @@ export class UserMenu {
       locator: '.sidebar-menu button:has-text("Logout")',
       name: 'Logout',
     });
+    // The checkbox behind the switch is display:none (styled via its label), so the
+    // label is the clickable, visible element a real user acts on.
+    this.darkModeToggle = new Button({
+      page,
+      locator: 'label[for="dark-mode-toggle"]',
+      name: 'Dark mode',
+    });
   }
 
   async isOpen(): Promise<boolean> {
@@ -81,5 +89,15 @@ export class UserMenu {
 
   async switchOrganization(): Promise<void> {
     await this.switchOrganizationButton.click();
+  }
+
+  async isDarkModeOn(): Promise<boolean> {
+    return this.page.locator('#dark-mode-toggle').isChecked();
+  }
+
+  async setDarkMode(enabled: boolean): Promise<void> {
+    if ((await this.isDarkModeOn()) !== enabled) {
+      await this.darkModeToggle.click();
+    }
   }
 }
