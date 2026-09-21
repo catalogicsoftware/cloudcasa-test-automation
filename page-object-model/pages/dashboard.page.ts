@@ -16,6 +16,15 @@ export class DashboardPage extends BasePage {
     name: ' Dashboard',
   });
 
+  // Distinct from TopNav.clustersLink: this one lives inside the dashboard
+  // content itself, so clicking it proves the content is interactive (not
+  // just the surrounding chrome) once the help modal overlay is gone.
+  readonly clustersContentLink = new Link({
+    page: this.page,
+    locator: 'app-dashboard a.text-black:has-text("Clusters")',
+    name: 'Clusters',
+  });
+
   readonly userMenu = new UserMenu(this.page);
   readonly userHelpModal = new UserHelpModal(this.page);
   readonly topNavigationBar = new TopNav(this.page);
