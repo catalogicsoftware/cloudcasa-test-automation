@@ -6,6 +6,7 @@ import { Table } from '@page-factory/table';
 import { UserMenu } from '@page-object-model/components/user-menu.components';
 import { UserHelpModal } from '@page-object-model/components/user-help-modal.components';
 import { TopNav } from '@page-object-model/components/top-nav.components';
+import { SwitchOrganizationDialog } from '@page-object-model/components/dialogs/switch-organization.dialog';
 import { JobsTimeRangeSelector } from '@page-object-model/components/jobs-time-range-selector.components';
 import { CcApiRoutes } from 'data/api-routes';
 
@@ -28,6 +29,7 @@ export class DashboardPage extends BasePage {
   readonly userMenu = new UserMenu(this.page);
   readonly userHelpModal = new UserHelpModal(this.page);
   readonly topNavigationBar = new TopNav(this.page);
+  readonly switchOrganizationDialog = new SwitchOrganizationDialog(this.page);
   readonly jobsTimeRange = new JobsTimeRangeSelector(this.page);
 
   readonly activityTab = new Link({
