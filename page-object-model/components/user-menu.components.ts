@@ -11,6 +11,7 @@ export class UserMenu {
   readonly headerOrganization: Title;
   readonly userMenuEmail: Title;
   readonly userMenuOrganization: Title;
+  readonly logoutButton: Button;
 
   constructor(private readonly page: Page) {
     this.userAndOrganizationButton = new Button({
@@ -38,6 +39,13 @@ export class UserMenu {
       locator: '//span[contains(@class,"pl-3")]',
       name: 'User Menu Organization',
     });
+    // The menu's items are all plain mat-menu-item buttons with no unique class or id,
+    // so the item is addressed by its text, same as the main nav links in TopNav.
+    this.logoutButton = new Button({
+      page,
+      locator: '.sidebar-menu button:has-text("Logout")',
+      name: 'Logout',
+    });
   }
 
   async isOpen(): Promise<boolean> {
@@ -59,5 +67,9 @@ export class UserMenu {
 
   async checkUserMenuEmail(email: string) {
     await this.userMenuEmail.shouldHaveText(email);
+  }
+
+  async logout(): Promise<void> {
+    await this.logoutButton.clickAndWaitForUrl(/\/login/);
   }
 }
