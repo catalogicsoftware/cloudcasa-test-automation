@@ -18,4 +18,8 @@ export abstract class BasePage {
   async reloadPage() {
     await this.page.reload({ waitUntil: 'domcontentloaded' });
   }
+
+  async getThemeClass(): Promise<string | null> {
+    return this.page.locator('body').getAttribute('class');
+  }
 }
