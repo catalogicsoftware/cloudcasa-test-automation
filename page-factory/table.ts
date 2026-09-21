@@ -46,6 +46,20 @@ export class Table extends Component {
     return this.rows.filter({ hasText: text });
   }
 
+  /** Number of visible data rows. No assertion — for comparing against a count read elsewhere. */
+  async rowCount(): Promise<number> {
+    return this.rows.count();
+  }
+
+  /** Retries past an in-flight data fetch, unlike a bare rowCount() read right after a navigation. */
+  async shouldHaveRowCount(expected: number, timeout?: number): Promise<void> {
+    await test.step(`${this.typeOfUpper} "${this.componentName}" should have ${expected} row(s)`, async () => {
+      await expect(async () => {
+        expect(await this.rowCount()).toBe(expected);
+      }).toPass({ timeout });
+    });
+  }
+
   private async getCell(rowText: string | RegExp, columnTitle: string): Promise<Locator> {
     const index = await this.columnIndex(columnTitle);
     return this.getRow(rowText).locator('td').nth(index);
