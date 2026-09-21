@@ -9,6 +9,7 @@ export class ClustersPage extends BasePage {
     locator: 'app-clusters',
     name: 'Clusters',
   });
+
   readonly heading = new Title({
     page: this.page,
     locator: 'app-clusters h4',

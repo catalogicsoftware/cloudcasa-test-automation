@@ -24,6 +24,11 @@ export class UsersConfigurationPage extends BasePage {
     locator: 'app-invitations table',
     name: 'Invitations',
   });
+  readonly usersTable = new Table({
+    page: this.page,
+    locator: 'app-users table',
+    name: 'Users',
+  });
 
   constructor(page: Page) {
     super(page);
