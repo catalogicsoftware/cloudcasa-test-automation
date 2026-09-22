@@ -52,8 +52,10 @@ export class ResetPasswordPage extends BasePage {
   }
 
   async setNewPassword(password: string): Promise<void> {
-    await this.newPasswordInput.fill(password, { validateValue: true });
-    await this.confirmPasswordInput.fill(password, { validateValue: true });
+    // Always masked: this method only ever handles a real or about-to-be-real account
+    // password, same reasoning as LoginPage.login()'s password fill.
+    await this.newPasswordInput.fill(password, { validateValue: true, secret: true });
+    await this.confirmPasswordInput.fill(password, { validateValue: true, secret: true });
     await this.submitButton.click();
   }
 }
