@@ -4,6 +4,7 @@ import { Container } from '@page-factory/container';
 import { Title } from '@page-factory/title';
 import { Table } from '@page-factory/table';
 import { ClustersSidebar } from '@page-object-model/components/clusters-sidebar.components';
+import { DefineClusterBackupWizard } from '@page-object-model/components/wizards/define-cluster-backup.wizard';
 
 export class ClustersPage extends BasePage {
   readonly clustersContainer = new Container({
@@ -23,6 +24,7 @@ export class ClustersPage extends BasePage {
     name: 'Clusters',
   });
   readonly clustersSideBar = new ClustersSidebar(this.page);
+  readonly defineClusterBackupWizard = new DefineClusterBackupWizard(this.page);
 
   private readonly CLUSTER_COLUMNS = [
     'Name',
