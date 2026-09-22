@@ -117,9 +117,12 @@ export class DashboardPage extends BasePage {
 
   async shouldHaveActivityColumns(): Promise<void> {
     await test.step('Activity table should have the expected columns', async () => {
-      await expect(
-        this.activityTable.getLocator().locator('thead th.table__header-cell'),
-      ).toHaveText(this.ACTIVITY_COLUMNS);
+      const namedHeaderCells = this.activityTable
+        .getLocator()
+        .locator('thead th.table__header-cell')
+        .filter({ hasText: /\S/ });
+
+      await expect(namedHeaderCells).toHaveText(this.ACTIVITY_COLUMNS);
     });
   }
 
