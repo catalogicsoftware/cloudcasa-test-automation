@@ -11,7 +11,9 @@ export class UserMenu {
   readonly headerOrganization: Title;
   readonly userMenuEmail: Title;
   readonly userMenuOrganization: Title;
+  readonly switchOrganizationButton: Button;
   readonly logoutButton: Button;
+  readonly darkModeToggle: Button;
 
   constructor(private readonly page: Page) {
     this.userAndOrganizationButton = new Button({
@@ -41,10 +43,22 @@ export class UserMenu {
     });
     // The menu's items are all plain mat-menu-item buttons with no unique class or id,
     // so the item is addressed by its text, same as the main nav links in TopNav.
+    this.switchOrganizationButton = new Button({
+      page,
+      locator: '.sidebar-menu button:has-text("Switch organization")',
+      name: 'Switch organization',
+    });
     this.logoutButton = new Button({
       page,
       locator: '.sidebar-menu button:has-text("Logout")',
       name: 'Logout',
+    });
+    // The checkbox behind the switch is display:none (styled via its label), so the
+    // label is the clickable, visible element a real user acts on.
+    this.darkModeToggle = new Button({
+      page,
+      locator: 'label[for="dark-mode-toggle"]',
+      name: 'Dark mode',
     });
   }
 
@@ -71,5 +85,19 @@ export class UserMenu {
 
   async logout(): Promise<void> {
     await this.logoutButton.clickAndWaitForUrl(/\/login/);
+  }
+
+  async switchOrganization(): Promise<void> {
+    await this.switchOrganizationButton.click();
+  }
+
+  async isDarkModeOn(): Promise<boolean> {
+    return this.page.locator('#dark-mode-toggle').isChecked();
+  }
+
+  async setDarkMode(enabled: boolean): Promise<void> {
+    if ((await this.isDarkModeOn()) !== enabled) {
+      await this.darkModeToggle.click();
+    }
   }
 }

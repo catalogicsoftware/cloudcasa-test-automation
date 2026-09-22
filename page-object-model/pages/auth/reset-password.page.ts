@@ -27,6 +27,14 @@ export class ResetPasswordPage extends BasePage {
     locator: 'text=Your password has been reset successfully.',
     name: 'Password Changed Message',
   });
+  // A reused/expired ticket redirects to a static Auth0 error page instead of this
+  // page's own form, so this reads its error text rather than a locator scoped to
+  // the Change Password markup above.
+  readonly usedLinkErrorMessage = new Title({
+    page: this.page,
+    locator: '#errorDescription',
+    name: 'Reset Link Error Message',
+  });
 
   constructor(page: Page) {
     super(page);
@@ -35,6 +43,12 @@ export class ResetPasswordPage extends BasePage {
   async openResetLink(url: string): Promise<void> {
     await this.page.goto(url, { waitUntil: 'load' });
     await this.newPasswordInput.getLocator().waitFor({ state: 'visible' });
+  }
+
+  /** Opens a reset link without waiting for the Change Password form, since a reused or
+   * expired ticket redirects to the error page instead and never renders that form. */
+  async openWithoutWaitingForForm(url: string): Promise<void> {
+    await this.page.goto(url, { waitUntil: 'load' });
   }
 
   async setNewPassword(password: string): Promise<void> {
