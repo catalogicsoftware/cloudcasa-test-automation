@@ -3,6 +3,12 @@ export type CcUser = {
   _etag: string;
   email: string;
   name?: string;
+  first_name?: string;
+  last_name?: string;
+  send_alert_emails?: boolean;
+  paid?: boolean;
+  cc_user_email?: string;
+  uiprefs?: Record<string, unknown>;
 };
 
 export type UsersListResponse = {

@@ -1,17 +1,20 @@
 import { Page } from '@playwright/test';
 import { Button } from '@page-factory/button';
+import { Container } from '@page-factory/container';
 import { Radio } from '@page-factory/radio';
 import { Title } from '@page-factory/title';
 
 export class UserHelpModal {
+  readonly container: Container;
   readonly title: Title;
   readonly closeButton: Button;
   readonly bookDemoOption: Radio;
   readonly openDocumentationOption: Radio;
-  readonly doNotShowAgainOption: Radio;
+  readonly doNotShowAgainOption: Button;
   readonly confirmButton: Button;
 
   constructor(page: Page) {
+    this.container = new Container({ page, locator: 'app-help-user', name: 'Help modal' });
     this.title = new Title({ page, locator: '.modal-title', name: 'Need some help?' });
     this.closeButton = new Button({ page, locator: '.close', name: 'Close' });
     this.bookDemoOption = new Radio({
@@ -24,14 +27,15 @@ export class UserHelpModal {
       locator: this.optionInputLocator('Open documentation'),
       name: 'Open documentation',
     });
-    this.doNotShowAgainOption = new Radio({
+    // The input does not register clicks reliably in this modal, so select its label.
+    this.doNotShowAgainOption = new Button({
       page,
-      locator: this.optionInputLocator('Please do not show this popup again'),
+      locator: 'app-help-user label:has-text("Please do not show this popup again")',
       name: 'Please do not show this popup again',
     });
     this.confirmButton = new Button({
       page,
-      locator: '.modal-footer .btn-accent',
+      locator: 'app-help-user button[type="submit"]',
       name: 'Confirm',
     });
   }
@@ -44,11 +48,18 @@ export class UserHelpModal {
     await this.closeButton.click();
   }
 
-  // The modal is not dismissed for the session unless the user picks "do not show this
-  // popup again", so it can reappear after a reload or a full-page navigation.
+  // The modal can reappear after navigation unless the user disables it.
   async closeIfVisible(): Promise<void> {
     if (await this.closeButton.getLocator().isVisible()) {
       await this.closeModal();
     }
+  }
+
+  async selectDoNotShowAgain(): Promise<void> {
+    await this.doNotShowAgainOption.click();
+  }
+
+  async confirm(): Promise<void> {
+    await this.confirmButton.click();
   }
 }
