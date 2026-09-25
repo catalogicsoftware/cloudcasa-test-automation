@@ -32,15 +32,11 @@ test.describe('Dashboard', () => {
     await dashboardPage.userHelpModal.closeIfVisible();
 
     // 7. Click "Define cluster backup".
-    // The ?new=true query disappears the instant the wizard opens, so the wait races the click instead of following it.
-    await Promise.all([
-      loggedInPage.waitForURL(/\/clusters\/backups\?new=true/),
-      dashboardPage.defineClusterBackupShortcut.click(),
-    ]);
+    await dashboardPage.defineClusterBackupShortcut.clickAndWaitForUrl(/\/clusters\/backups$/);
 
-    // 8. Make sure that the URL is /clusters/backups?new=true.
+    // 8. Make sure that the Clusters backups page opens.
     // 9. Make sure that the wizard "Define cluster backup" is open.
-    await expect(loggedInPage).toHaveURL(/\/clusters\/backups/);
+    await expect(loggedInPage).toHaveURL(/\/clusters\/backups$/);
     await clustersPage.defineClusterBackupWizard.title.shouldHaveText('Define cluster backup');
 
     // 10. Close the wizard with "Cancel".
@@ -59,11 +55,14 @@ test.describe('Dashboard', () => {
     // 13. Go back to the dashboard and click "Add cluster".
     await dashboardPage.goto('/dashboard');
     await dashboardPage.userHelpModal.closeIfVisible();
-    await dashboardPage.addClusterShortcut.click();
+    await dashboardPage.addClusterShortcut.clickAndWaitForUrl(/\/clusters\/overview$/);
 
-    // 14. Make sure that the URL is /clusters?new=true and that the dialog "Add Cluster" is open. Actual: the URL settles on /clusters/overview and no dialog opens, for the shortcut and for the in-page "Add cluster" button alike. Expected: the URL becomes /clusters?new=true and the "Add Cluster" dialog opens.
-    test.fixme();
+    // 14. Make sure that the Clusters overview opens with the "Add Cluster" panel.
+    await expect(loggedInPage).toHaveURL(/\/clusters\/overview$/);
+    await expect(
+      loggedInPage.getByRole('complementary').getByRole('heading', { name: 'Add Cluster' }),
+    ).toBeVisible();
 
-    // No cluster or backup is ever created: the Add Cluster dialog never opens and the backup wizard is cancelled before "Create".
+    // No cluster or backup is created: the Add Cluster panel remains open and the backup wizard was cancelled.
   });
 });
