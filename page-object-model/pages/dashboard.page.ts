@@ -98,6 +98,26 @@ export class DashboardPage extends BasePage {
     locator: 'app-shortcuts',
     name: 'Shortcuts',
   });
+  readonly clustersOverviewShortcut = new Link({
+    page: this.page,
+    locator: 'app-shortcuts a[href="/clusters"]',
+    name: 'Clusters Overview',
+  });
+  readonly addClusterShortcut = new Link({
+    page: this.page,
+    locator: 'app-shortcuts a[href="/clusters?new=true"]',
+    name: 'Add cluster',
+  });
+  readonly cloudAccountsShortcut = new Link({
+    page: this.page,
+    locator: 'app-shortcuts a[href="/configuration/cloud-accounts"]',
+    name: 'Cloud accounts',
+  });
+  readonly defineClusterBackupShortcut = new Link({
+    page: this.page,
+    locator: 'app-shortcuts a[href="/clusters/backups?new=true"]',
+    name: 'Define cluster backup',
+  });
   readonly alertsPanel = new Container({ page: this.page, locator: 'app-alerts', name: 'Alerts' });
 
   constructor(page: Page) {
