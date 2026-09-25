@@ -17,3 +17,6 @@ ci/local/
 
 # Daily Mailinator call counter, written by utils/mailinator-quota.ts
 .mailinator-quota/
+
+# Cross-worker bucket locks, written by utils/bucket-lock.ts
+.storage-locks/
