@@ -1,6 +1,7 @@
 import { test as base, request as apiRequest } from '@playwright/test';
 import { LoginPage } from '@page-object-model/pages/auth/login.page';
 import { DashboardPage } from '@page-object-model/pages/dashboard.page';
+import { ClustersPage } from '@page-object-model/pages/clusters.page';
 import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.page';
 import { SignUpPage } from '@page-object-model/pages/auth/sign-up.page';
 import { ConfigurationPage } from '@page-object-model/pages/configuration/configuration.page';
@@ -17,6 +18,7 @@ import { checkMailboxAccess } from '@utils/mailinator';
 type Pages = {
   loginPage: LoginPage;
   dashboardPage: DashboardPage;
+  clustersPage: ClustersPage;
   resetPasswordPage: ResetPasswordPage;
   configurationPage: ConfigurationPage;
   usersConfigurationPage: UsersConfigurationPage;
@@ -50,6 +52,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   dashboardPage: async ({ page }, use) => {
     await use(new DashboardPage(page));
+  },
+  clustersPage: async ({ page }, use) => {
+    await use(new ClustersPage(page));
   },
   resetPasswordPage: async ({ page }, use) => {
     await use(new ResetPasswordPage(page));
