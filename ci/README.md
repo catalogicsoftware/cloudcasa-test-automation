@@ -252,8 +252,13 @@ Four publish targets, all off the controller:
 - **Teams gets one card per build**, sent last in the `post` block but reporting the verdict as
   it stood **before** any publish step ran — a broken Nexus or Testmo upload leaves the build
   `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel points at
-  the test run rather than at an unconfigured publish target. It carries that verdict and this
-  build's Allure link only — no Nexus, no Testmo, no test counters. If Allure was not published
+  the test run rather than at an unconfigured publish target. It carries that verdict, a
+  per-folder passed/failed/broken/skipped breakdown, and this build's Allure link — no Nexus, no
+  Testmo. The breakdown groups `allure-results/*-result.json` by the top-level `tests/<folder>/`
+  segment of each spec's `fullName` — the same grouping Allure's own Suites tab uses — so a single
+  failing test doesn't read as the whole run being red; it is computed by a small Node script run
+  inside `TEST_IMAGE` (only Docker + curl are guaranteed on the node itself) and is skipped, not
+  fatal, if `allure-results/` is missing or the summary step errors. If Allure was not published
   the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
   and carries no link at all otherwise — silence would be indistinguishable from the pipeline
   never having run.

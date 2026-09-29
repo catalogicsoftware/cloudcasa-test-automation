@@ -279,12 +279,65 @@ pipeline {
                         def colour = testResult == 'SUCCESS' ? 'good'
                             : (testResult == 'UNSTABLE' ? 'warning' : 'attention')
 
+                        // Per-folder passed/failed/broken/skipped, same grouping as Allure's own Suites tab
+                        // (top-level tests/<folder>/), so one failing spec doesn't read as "everything is red".
+                        // Runs inside TEST_IMAGE rather than on the node — only Docker + curl are guaranteed there.
+                        def folderCounts = []
+                        if (fileExists('allure-results')) {
+                            try {
+                                writeFile file: 'allure-folder-summary.js', text: '''
+                                    const fs = require('fs');
+                                    const path = require('path');
+                                    const dir = 'allure-results';
+                                    const known = ['passed', 'failed', 'broken', 'skipped'];
+                                    const counts = {};
+                                    for (const name of fs.readdirSync(dir)) {
+                                        if (!name.endsWith('-result.json')) continue;
+                                        let result;
+                                        try {
+                                            result = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+                                        } catch (err) {
+                                            continue;
+                                        }
+                                        const fullName = result.fullName || '';
+                                        const folder = fullName.includes('/') ? fullName.split('/')[0] : 'other';
+                                        const status = known.includes(result.status) ? result.status : 'broken';
+                                        counts[folder] = counts[folder] || { passed: 0, failed: 0, broken: 0, skipped: 0 };
+                                        counts[folder][status]++;
+                                    }
+                                    for (const folder of Object.keys(counts).sort()) {
+                                        const c = counts[folder];
+                                        console.log([folder, c.passed, c.failed, c.broken, c.skipped].join('|'));
+                                    }
+                                '''
+                                def summary = docker.image(env.TEST_IMAGE).inside {
+                                    sh(script: 'node allure-folder-summary.js', returnStdout: true)
+                                }
+                                folderCounts = summary.trim().split('\\n').findAll { it }.collect { line ->
+                                    def parts = line.split('\\\\|')
+                                    [folder: parts[0], passed: parts[1].toInteger(), failed: parts[2].toInteger(),
+                                     broken: parts[3].toInteger(), skipped: parts[4].toInteger()]
+                                }
+                            } catch (err) {
+                                // Same rule as the rest of this block: a broken summary must not sink the card.
+                                echo "Allure folder summary failed: ${err}"
+                            } finally {
+                                sh 'rm -f allure-folder-summary.js'
+                            }
+                        }
+
                         def body = [
                             [type: 'TextBlock', weight: 'Bolder', size: 'Medium', wrap: true,
                              text: "CloudCasa E2E — ${env.JOB_NAME} #${env.BUILD_NUMBER}".toString()],
                             [type: 'TextBlock', color: colour, wrap: true,
                              text: "Result: ${testResult}".toString()],
                         ]
+                        if (folderCounts) {
+                            body << [type: 'FactSet', facts: folderCounts.collect { f ->
+                                [title: f.folder as String,
+                                 value: "✅ ${f.passed}   ❌ ${f.failed}   ⚠️ ${f.broken}   ⏭ ${f.skipped}".toString()]
+                            }]
+                        }
                         def actions = []
                         if (allureUrl) {
                             actions << [type: 'Action.OpenUrl', title: 'Open Allure report', url: allureUrl]
