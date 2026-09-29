@@ -24,4 +24,33 @@ export class Toast {
       }).toContainText(message, { timeout });
     });
   }
+
+  /**
+   * Watches for any toast whose text matches `pattern`, even one that appears and
+   * auto-dismisses before a test gets around to asserting on it. Must be called before
+   * the first navigation so the watcher is already attached at first paint.
+   */
+  async watchFor(pattern: RegExp): Promise<() => string[]> {
+    const history: string[] = [];
+    const handle = `__toastWatch_${Math.random().toString(36).slice(2)}`;
+    await this.page.exposeFunction(handle, (text: string) => history.push(text));
+    await this.page.addInitScript(
+      ({ handle, source }) => {
+        const matcher = new RegExp(source);
+        const check = () => {
+          const text = document.querySelector('app-toast')?.textContent ?? '';
+          if (matcher.test(text)) {
+            (window as unknown as Record<string, (text: string) => void>)[handle](text);
+          }
+        };
+        new MutationObserver(check).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+      },
+      { handle, source: pattern.source },
+    );
+    return () => history;
+  }
 }

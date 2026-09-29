@@ -22,6 +22,17 @@ export const LOGIN_REDIRECT_TIMEOUT = 45_000;
 /** Test budget for the policy journey: two reloads and a removal on top of a sign-in that staging regularly makes twice. */
 export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
+/** Mirrors playwright.config.ts navigationTimeout: the ceiling for a single top-level navigation. */
+export const NAVIGATION_TIMEOUT = 30_000;
+
+/**
+ * Test budget for the post-login landing check: the initial login navigation, the sign-in
+ * redirect, a dashboard reload, and a clusters navigation can all run back-to-back at their
+ * individual ceilings, plus headroom for assertions and UI settling.
+ */
+export const POST_LOGIN_LANDING_TEST_TIMEOUT =
+  NAVIGATION_TIMEOUT * 3 + LOGIN_REDIRECT_TIMEOUT + 60_000;
+
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;
 
@@ -30,3 +41,42 @@ export const DIALOG_CLOSE_TIMEOUT = 30_000;
 
 /** Test budget for a flow that saves a storage: the probe plus the UI around it. */
 export const STORAGE_TEST_TIMEOUT = BACKEND_PROBE_TIMEOUT + 90_000;
+
+/**
+ * Test budget for a flow that resets the same account's password twice by e-mail (once to
+ * change it, once to restore it): two full email round-trips plus the extra logins and
+ * dashboard loads around them.
+ */
+export const DOUBLE_PASSWORD_RESET_TEST_TIMEOUT =
+  EMAIL_TEST_TIMEOUT * 2 + LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
+
+/**
+ * Test budget for the reset-link reuse journey: a full mail-driven reset round trip to set
+ * the new password, a second one in cleanup to restore the account's baseline password, plus
+ * a login on top.
+ */
+export const PASSWORD_RESET_REUSE_TEST_TIMEOUT = EMAIL_TEST_TIMEOUT * 2 + LOGIN_REDIRECT_TIMEOUT;
+
+/**
+ * Test budget for the "reset email is sent" check: the test itself only takes a few UI steps,
+ * but it shares the reset-pwd-account lock (fixtures/base.ts) with its slower siblings, so its
+ * budget must cover the longest possible wait for that lock — the reuse journey above — on top
+ * of its own steps.
+ */
+export const PASSWORD_RESET_EMAIL_SENT_TEST_TIMEOUT = PASSWORD_RESET_REUSE_TEST_TIMEOUT + 30_000;
+
+/**
+ * Test budget for the "reset flow completes" check when it has to wait its turn for the shared
+ * reset-pwd-account lock (fixtures/base.ts): its own mail round trip (EMAIL_TEST_TIMEOUT) plus
+ * the worst-case wait behind the reuse journey above, its longest-running lock-sharing sibling.
+ */
+export const PASSWORD_RESET_FLOW_TEST_TIMEOUT =
+  EMAIL_TEST_TIMEOUT + PASSWORD_RESET_REUSE_TEST_TIMEOUT;
+
+/**
+ * Test budget for the reset-link reuse journey when it has to wait its turn for the shared
+ * reset-pwd-account lock (fixtures/base.ts): its own round trip (PASSWORD_RESET_REUSE_TEST_TIMEOUT)
+ * plus the worst-case wait behind the flow-completes sibling's own mail round trip.
+ */
+export const PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT =
+  PASSWORD_RESET_REUSE_TEST_TIMEOUT + EMAIL_TEST_TIMEOUT;

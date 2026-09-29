@@ -13,6 +13,7 @@ type AuthFixtures = {
   cleanRegisteredUserState: void;
   createdObjectStorages: string[];
   createdPolicies: string[];
+  resetHelpDialogPreference: void;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -128,6 +129,23 @@ export const test = base.extend<AuthFixtures>({
     if (failures.length) {
       throw new Error(`Policy teardown failed for ${failures.join('; ')}`);
     }
+  },
+
+  // tests/dashboard/help-modal-stays-closed.spec.ts confirms the help modal's "do not show
+  // again" option, which PUTs uiprefs.helpdialog: "disabled" onto whichever account confirms
+  // it. That test runs against the shared CI account (loggedInPage), so this resets the flag
+  // both before (self-healing, in case a prior crashed run left it set) and after, so the
+  // next login — this test's own re-login included — still sees the modal like TC-DASH-001
+  // expects. usersApi's adminJwt dependency forces this to resolve after loggedInPage's own
+  // navigation, so the page the test inherits was loaded before the "before" reset ran —
+  // reloading here, once the reset lands, is what makes the account's first modal appearance
+  // reflect the cleared preference instead of whatever a crashed prior run left behind.
+  resetHelpDialogPreference: async ({ page, usersApi, adminUser }, use) => {
+    const clean = () => usersApi.resetHelpDialogPreference(adminUser.email);
+    await clean();
+    await page.reload();
+    await use();
+    await clean();
   },
 });
 

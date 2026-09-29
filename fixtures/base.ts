@@ -2,6 +2,9 @@ import { test as base, request as apiRequest } from '@playwright/test';
 import { LoginPage } from '@page-object-model/pages/auth/login.page';
 import { DashboardPage } from '@page-object-model/pages/dashboard.page';
 import { ClustersPage } from '@page-object-model/pages/clusters.page';
+import { DatabasesPage } from '@page-object-model/pages/databases.page';
+import { DrPage } from '@page-object-model/pages/dr.page';
+import { ReportsPage } from '@page-object-model/pages/reports.page';
 import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.page';
 import { SignUpPage } from '@page-object-model/pages/auth/sign-up.page';
 import { ConfigurationPage } from '@page-object-model/pages/configuration/configuration.page';
@@ -9,27 +12,34 @@ import { User, InvitedUser, defaultUser, invitedUser, registeredUser } from '@da
 import { UsersConfigurationPage } from '@page-object-model/pages/configuration/user-configuration.page';
 import { StorageConfigurationPage } from '@page-object-model/pages/configuration/storage-configuration.page';
 import { PoliciesConfigurationPage } from '@page-object-model/pages/configuration/policies-configuration.page';
+import { PricingPlansPage } from '@page-object-model/pages/configuration/pricing-plans.page';
 import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
 import { checkMailboxAccess } from '@utils/mailinator';
+import { acquireLock } from '@utils/mailinator-lock';
 
 type Pages = {
   loginPage: LoginPage;
   dashboardPage: DashboardPage;
   clustersPage: ClustersPage;
+  databasesPage: DatabasesPage;
+  drPage: DrPage;
+  reportsPage: ReportsPage;
   resetPasswordPage: ResetPasswordPage;
   configurationPage: ConfigurationPage;
   usersConfigurationPage: UsersConfigurationPage;
   storageConfigurationPage: StorageConfigurationPage;
   policiesConfigurationPage: PoliciesConfigurationPage;
+  pricingPlansPage: PricingPlansPage;
   toast: Toast;
   signUpPage: SignUpPage;
   adminUser: User;
   invitedUser: InvitedUser;
   registeredUser: InvitedUser;
   ccApi: CcApi;
+  resetPwdAccountLock: void;
 };
 
 type WorkerFixtures = {
@@ -56,6 +66,15 @@ export const test = base.extend<Pages, WorkerFixtures>({
   clustersPage: async ({ page }, use) => {
     await use(new ClustersPage(page));
   },
+  databasesPage: async ({ page }, use) => {
+    await use(new DatabasesPage(page));
+  },
+  drPage: async ({ page }, use) => {
+    await use(new DrPage(page));
+  },
+  reportsPage: async ({ page }, use) => {
+    await use(new ReportsPage(page));
+  },
   resetPasswordPage: async ({ page }, use) => {
     await use(new ResetPasswordPage(page));
   },
@@ -73,6 +92,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   policiesConfigurationPage: async ({ page }, use) => {
     await use(new PoliciesConfigurationPage(page));
+  },
+  pricingPlansPage: async ({ page }, use) => {
+    await use(new PricingPlansPage(page));
   },
   toast: async ({ page }, use) => {
     await use(new Toast(page));
@@ -109,6 +131,16 @@ export const test = base.extend<Pages, WorkerFixtures>({
     },
     { scope: 'worker', auto: true },
   ],
+
+  // MailinatorInbox.RESET_PWD backs one fixed CloudCasa account shared by every
+  // tests/auth/password-reset-* file, so two of those files running on different workers at the
+  // same time can steal each other's reset email or stomp each other's password change. Requested
+  // only by those files — every other test is unaffected and keeps running fully in parallel.
+  resetPwdAccountLock: async ({}, use) => {
+    const release = await acquireLock('reset-pwd-account');
+    await use();
+    release();
+  },
 
   // Requested only by tests that read an inbox, so a run without Mailinator configured still
   // exercises everything else instead of failing wholesale.

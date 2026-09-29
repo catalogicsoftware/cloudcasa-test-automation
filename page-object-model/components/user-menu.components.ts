@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import { Button } from '@page-factory/button';
 import { Title } from '@page-factory/title';
+import { Link } from '@page-factory/link';
 
 export class UserMenu {
   // Header button showing the user's first name and current organization —
@@ -9,8 +10,17 @@ export class UserMenu {
 
   readonly headerUserName: Title;
   readonly headerOrganization: Title;
+  readonly userMenuName: Title;
   readonly userMenuEmail: Title;
   readonly userMenuOrganization: Title;
+  readonly switchOrganizationButton: Button;
+  readonly privacyPolicyLink: Link;
+  readonly termsOfServiceLink: Link;
+  readonly apiGuideLink: Link;
+  readonly openSourceNoticesLink: Link;
+  readonly userSettingsLink: Link;
+  readonly logoutButton: Button;
+  readonly darkModeToggle: Button;
 
   constructor(private readonly page: Page) {
     this.userAndOrganizationButton = new Button({
@@ -28,6 +38,11 @@ export class UserMenu {
       locator: '.holder-org',
       name: 'Header Organization',
     });
+    this.userMenuName = new Title({
+      page,
+      locator: '.navigation-user-info h5',
+      name: 'User Menu Name',
+    });
     this.userMenuEmail = new Title({
       page,
       locator: '.navigation-user-info > small',
@@ -37,6 +52,49 @@ export class UserMenu {
       page,
       locator: '//span[contains(@class,"pl-3")]',
       name: 'User Menu Organization',
+    });
+    // Menu items have no unique selectors, so each item is addressed by its text.
+    this.switchOrganizationButton = new Button({
+      page,
+      locator: '.sidebar-menu button:has-text("Switch organization")',
+      name: 'Switch organization',
+    });
+    this.privacyPolicyLink = new Link({
+      page,
+      locator: '.sidebar-menu a:has-text("Privacy policy")',
+      name: 'Privacy policy',
+    });
+    this.termsOfServiceLink = new Link({
+      page,
+      locator: '.sidebar-menu a:has-text("Terms of service")',
+      name: 'Terms of service',
+    });
+    this.apiGuideLink = new Link({
+      page,
+      locator: '.sidebar-menu a:has-text("API guide")',
+      name: 'API guide',
+    });
+    this.openSourceNoticesLink = new Link({
+      page,
+      locator: '.sidebar-menu a:has-text("Open source notices")',
+      name: 'Open source notices',
+    });
+    this.userSettingsLink = new Link({
+      page,
+      locator: '.sidebar-menu a:has-text("User settings")',
+      name: 'User settings',
+    });
+    this.logoutButton = new Button({
+      page,
+      locator: '.sidebar-menu button:has-text("Logout")',
+      name: 'Logout',
+    });
+    // The checkbox behind the switch is display:none (styled via its label), so the
+    // label is the clickable, visible element a real user acts on.
+    this.darkModeToggle = new Button({
+      page,
+      locator: 'label[for="dark-mode-toggle"]',
+      name: 'Dark mode',
     });
   }
 
@@ -59,5 +117,23 @@ export class UserMenu {
 
   async checkUserMenuEmail(email: string) {
     await this.userMenuEmail.shouldHaveText(email);
+  }
+
+  async logout(): Promise<void> {
+    await this.logoutButton.clickAndWaitForUrl(/\/login/);
+  }
+
+  async switchOrganization(): Promise<void> {
+    await this.switchOrganizationButton.click();
+  }
+
+  async isDarkModeOn(): Promise<boolean> {
+    return this.page.locator('#dark-mode-toggle').isChecked();
+  }
+
+  async setDarkMode(enabled: boolean): Promise<void> {
+    if ((await this.isDarkModeOn()) !== enabled) {
+      await this.darkModeToggle.click();
+    }
   }
 }
