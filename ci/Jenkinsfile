@@ -313,8 +313,8 @@ pipeline {
                                 def summary = docker.image(env.TEST_IMAGE).inside {
                                     sh(script: 'node allure-folder-summary.js', returnStdout: true)
                                 }
-                                folderCounts = summary.trim().split('\\n').findAll { it }.collect { line ->
-                                    def parts = line.split('\\\\|')
+                                folderCounts = summary.trim().split('\n').findAll { it }.collect { line ->
+                                    def parts = line.split('\\|')
                                     [folder: parts[0], passed: parts[1].toInteger(), failed: parts[2].toInteger(),
                                      broken: parts[3].toInteger(), skipped: parts[4].toInteger()]
                                 }
