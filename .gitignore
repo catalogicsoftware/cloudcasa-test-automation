@@ -7,7 +7,11 @@ allure-results/
 .vscode
 .claude
 CLAUDE.md
-specs
+/spec
+/specs
+/README.md
+e2e-test-prompts.md
+.mcp.json
 allure-history.jsonl
 allure*
 docs
