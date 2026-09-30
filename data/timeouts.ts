@@ -36,6 +36,9 @@ export const POST_LOGIN_LANDING_TEST_TIMEOUT =
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;
 
+/** The help modal can reappear after a full-page navigation but hasn't rendered yet right after goto() — long enough for it to show, short enough to fall through when it doesn't. */
+export const HELP_MODAL_REAPPEAR_TIMEOUT = 3_000;
+
 /** A confirmation dialog closes only once its backend call answers, which outlasts the 5s expect default. */
 export const DIALOG_CLOSE_TIMEOUT = 30_000;
 
