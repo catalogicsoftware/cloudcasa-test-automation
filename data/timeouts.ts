@@ -10,6 +10,9 @@ export const STORAGE_LIST_RELOAD_TIMEOUT = 30_000;
 /** The policies list reloads itself the same way once the Add policy dialog closes. */
 export const POLICY_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The clusters list reloads itself the same way once a cluster is registered or removed. */
+export const CLUSTER_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
@@ -21,6 +24,9 @@ export const LOGIN_REDIRECT_TIMEOUT = 45_000;
 
 /** Test budget for the policy journey: two reloads and a removal on top of a sign-in that staging regularly makes twice. */
 export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
+
+/** Test budget for the cluster journey: registration, the install instructions dialog, and a removal with a confirmation and reload. */
+export const CLUSTER_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 90_000;
 
 /** Mirrors playwright.config.ts navigationTimeout: the ceiling for a single top-level navigation. */
 export const NAVIGATION_TIMEOUT = 30_000;

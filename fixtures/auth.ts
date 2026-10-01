@@ -13,6 +13,7 @@ type AuthFixtures = {
   cleanRegisteredUserState: void;
   createdObjectStorages: string[];
   createdPolicies: string[];
+  createdClusters: string[];
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -127,6 +128,26 @@ export const test = base.extend<AuthFixtures>({
     }
     if (failures.length) {
       throw new Error(`Policy teardown failed for ${failures.join('; ')}`);
+    }
+  },
+
+  // Same contract as createdObjectStorages/createdPolicies: the name is pushed before the
+  // save, so a failure between registering the cluster and removing it through the UI still
+  // cleans up.
+  createdClusters: async ({ ccApi }, use) => {
+    const names: string[] = [];
+    await use(names);
+
+    const failures: string[] = [];
+    for (const name of names) {
+      try {
+        await ccApi.clusters.deleteByName(name);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+    if (failures.length) {
+      throw new Error(`Cluster teardown failed for ${failures.join('; ')}`);
     }
   },
 });
