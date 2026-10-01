@@ -1,10 +1,13 @@
 import { expect, Page, test } from '@playwright/test';
 import { BasePage } from './base.page';
+import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
 import { Title } from '@page-factory/title';
 import { Table } from '@page-factory/table';
 import { ClustersSidebar } from '@page-object-model/components/clusters-sidebar.components';
 import { DefineClusterBackupWizard } from '@page-object-model/components/wizards/define-cluster-backup.wizard';
+import { AddClusterSidebar } from '@page-object-model/components/drawers/add-cluster.drawer';
+import { InstallClusterDialog } from '@page-object-model/components/dialogs/install-cluster.dialog';
 
 export class ClustersPage extends BasePage {
   readonly clustersContainer = new Container({
@@ -25,6 +28,13 @@ export class ClustersPage extends BasePage {
   });
   readonly clustersSideBar = new ClustersSidebar(this.page);
   readonly defineClusterBackupWizard = new DefineClusterBackupWizard(this.page);
+  readonly addClusterButton = new Button({
+    page: this.page,
+    locator: 'app-clusters button:has-text("Add cluster")',
+    name: 'Add cluster',
+  });
+  readonly addClusterSidebar = new AddClusterSidebar(this.page);
+  readonly installClusterDialog = new InstallClusterDialog(this.page);
 
   private readonly CLUSTER_COLUMNS = [
     'Name',
@@ -54,5 +64,11 @@ export class ClustersPage extends BasePage {
         ).toBeVisible();
       }
     });
+  }
+
+  async openAddClusterSidebar(): Promise<AddClusterSidebar> {
+    await this.addClusterButton.click();
+    await this.addClusterSidebar.shouldBeOpened();
+    return this.addClusterSidebar;
   }
 }
