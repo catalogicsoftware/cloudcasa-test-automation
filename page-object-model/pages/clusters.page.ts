@@ -1,8 +1,11 @@
 import { expect, Page, test } from '@playwright/test';
 import { BasePage } from './base.page';
+import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
 import { Title } from '@page-factory/title';
 import { Table } from '@page-factory/table';
+import { AddClusterSidebar } from '@page-object-model/components/drawers/add-cluster.drawer';
+import { InstallClusterDialog } from '@page-object-model/components/dialogs/install-cluster.dialog';
 
 export class ClustersPage extends BasePage {
   readonly clustersContainer = new Container({
@@ -21,6 +24,13 @@ export class ClustersPage extends BasePage {
     locator: 'app-clusters table',
     name: 'Clusters',
   });
+  readonly addClusterButton = new Button({
+    page: this.page,
+    locator: 'app-clusters button:has-text("Add cluster")',
+    name: 'Add cluster',
+  });
+  readonly addClusterSidebar = new AddClusterSidebar(this.page);
+  readonly installClusterDialog = new InstallClusterDialog(this.page);
 
   constructor(page: Page) {
     super(page);
@@ -31,5 +41,11 @@ export class ClustersPage extends BasePage {
       await expect(this.page).toHaveURL(/\/clusters/);
       await this.clustersContainer.shouldBeVisible();
     });
+  }
+
+  async openAddClusterSidebar(): Promise<AddClusterSidebar> {
+    await this.addClusterButton.click();
+    await this.addClusterSidebar.shouldBeOpened();
+    return this.addClusterSidebar;
   }
 }

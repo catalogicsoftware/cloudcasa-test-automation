@@ -1,0 +1,1 @@
+/home/dventsis/claudiusz-auto-test/cloudcasa-test-automation/spec
