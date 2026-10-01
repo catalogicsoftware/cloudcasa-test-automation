@@ -1,6 +1,7 @@
 import { expect, Page, Response, test } from '@playwright/test';
 import { Button } from '@page-factory/button';
 import { Checkbox } from '@page-factory/checkbox';
+import { Container } from '@page-factory/container';
 import { Dropdown } from '@page-factory/dropdown';
 import { Radio } from '@page-factory/radio';
 import { Input } from '@page-factory/input';
@@ -24,6 +25,7 @@ export class AddObjectStorageWizard extends BaseDrawer {
   readonly summaryTab: Button;
   readonly bucketName: Input;
   readonly endpointUrl: Input;
+  readonly endpointValidationMessage: Container;
   readonly region: Input;
   readonly regionSelect: Dropdown;
   readonly accessKey: Input;
@@ -70,6 +72,15 @@ export class AddObjectStorageWizard extends BaseDrawer {
       page,
       locator: this.scoped('input[id*="s3provider.endpoint"]:visible'),
       name: 'Endpoint URL',
+    });
+    this.endpointValidationMessage = new Container({
+      page,
+      // Same formly convention as every other required field: a sibling .invalid-feedback
+      // holding a <formly-validation-message>, rendered only while the field is invalid.
+      locator: this.scoped(
+        '.form-group:has(input[id*="s3provider.endpoint"]) .invalid-feedback',
+      ),
+      name: 'Endpoint URL validation message',
     });
     this.region = new Input({
       page,
