@@ -3,6 +3,7 @@ import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
 import { Radio } from '@page-factory/radio';
 import { Title } from '@page-factory/title';
+import { HELP_MODAL_REAPPEAR_TIMEOUT } from '@data/timeouts';
 
 export class UserHelpModal {
   readonly container: Container;
@@ -48,9 +49,15 @@ export class UserHelpModal {
     await this.closeButton.click();
   }
 
-  // The modal can reappear after navigation unless the user disables it.
+  // The modal can reappear after navigation unless the user disables it, but right after
+  // goto() Angular hasn't rendered it yet, so a point-in-time isVisible() check would miss it.
   async closeIfVisible(): Promise<void> {
-    if (await this.closeButton.getLocator().isVisible()) {
+    const reappeared = await this.closeButton
+      .getLocator()
+      .waitFor({ state: 'visible', timeout: HELP_MODAL_REAPPEAR_TIMEOUT })
+      .then(() => true)
+      .catch(() => false);
+    if (reappeared) {
       await this.closeModal();
     }
   }
