@@ -11,6 +11,7 @@ import { ConfigurationPage } from '@page-object-model/pages/configuration/config
 import { User, InvitedUser, defaultUser, invitedUser, registeredUser } from '@data/user';
 import { UsersConfigurationPage } from '@page-object-model/pages/configuration/user-configuration.page';
 import { StorageConfigurationPage } from '@page-object-model/pages/configuration/storage-configuration.page';
+import { CloudAccountsConfigurationPage } from '@page-object-model/pages/configuration/cloud-accounts-configuration.page';
 import { PoliciesConfigurationPage } from '@page-object-model/pages/configuration/policies-configuration.page';
 import { PricingPlansPage } from '@page-object-model/pages/configuration/pricing-plans.page';
 import { Toast } from '@page-object-model/components/toast.components';
@@ -31,6 +32,7 @@ type Pages = {
   configurationPage: ConfigurationPage;
   usersConfigurationPage: UsersConfigurationPage;
   storageConfigurationPage: StorageConfigurationPage;
+  cloudAccountsConfigurationPage: CloudAccountsConfigurationPage;
   policiesConfigurationPage: PoliciesConfigurationPage;
   pricingPlansPage: PricingPlansPage;
   toast: Toast;
@@ -89,6 +91,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   storageConfigurationPage: async ({ page }, use) => {
     await use(new StorageConfigurationPage(page));
+  },
+  cloudAccountsConfigurationPage: async ({ page }, use) => {
+    await use(new CloudAccountsConfigurationPage(page));
   },
   policiesConfigurationPage: async ({ page }, use) => {
     await use(new PoliciesConfigurationPage(page));
