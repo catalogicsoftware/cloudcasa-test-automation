@@ -22,6 +22,7 @@ export type OrgInviteAcl = {
 export type CreateOrgInviteRequest = {
   acls: OrgInviteAcl[];
   expires_in_days: number;
+  name: string;
   first_name: string;
   last_name: string;
   email: string;

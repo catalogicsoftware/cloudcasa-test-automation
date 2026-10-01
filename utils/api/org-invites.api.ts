@@ -31,6 +31,8 @@ export class OrgInvitesApi extends BaseApi {
     const data: CreateOrgInviteRequest = {
       acls: [{ roles: roleIds, resource: 'allresources' }],
       expires_in_days: expiresInDays,
+      // Staging rejects an invite without `name` (422 "required field").
+      name: `${user.firstName} ${user.lastName}`,
       first_name: user.firstName,
       last_name: user.lastName,
       email: user.email,
