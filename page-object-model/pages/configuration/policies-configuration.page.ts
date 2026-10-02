@@ -2,6 +2,7 @@ import test, { expect, Page } from '@playwright/test';
 import { BasePage } from '../base.page';
 import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
+import { Input } from '@page-factory/input';
 import { Table } from '@page-factory/table';
 import { AddPolicyDialog } from '@page-object-model/components/dialogs/add-policy.dialog';
 import { ProceedConfirmation } from '@page-object-model/components/proceed-confirmation.components';
@@ -25,6 +26,17 @@ export class PoliciesConfigurationPage extends BasePage {
     locator: 'app-policies table',
     name: 'Policies',
   });
+  /** Formly numbers the field id per form instance, so it is matched on its stable middle. */
+  readonly nameFilter = new Input({
+    page: this.page,
+    locator: 'app-policies input[id*="input_name"]',
+    name: 'Name filter',
+  });
+  readonly emptyState = new Container({
+    page: this.page,
+    locator: 'app-policies .table__no-info',
+    name: 'Empty policies list',
+  });
   readonly addPolicyDialog = new AddPolicyDialog(this.page);
   readonly removeConfirmation = new ProceedConfirmation(this.page);
 
@@ -43,6 +55,14 @@ export class PoliciesConfigurationPage extends BasePage {
     await this.addPolicy.click();
     await this.addPolicyDialog.shouldBeOpened();
     return this.addPolicyDialog;
+  }
+
+  /** The list only re-fetches on Enter; typing alone leaves it unfiltered. */
+  async filterByName(name: string): Promise<void> {
+    await test.step(`Filter policies by name "${name}"`, async () => {
+      await this.nameFilter.fill(name);
+      await this.nameFilter.getLocator().press('Enter');
+    });
   }
 
   /** Every schedule value typed into the dialog must come back out of the Schedules cell. */

@@ -4,6 +4,25 @@ import { BaseApi } from './base.api';
 import type { PoliciesListResponse, Policy } from '../../types/api/policies';
 
 export class PoliciesApi extends BaseApi {
+  /** One daily schedule is the minimum the backend accepts; the schedule's own content is irrelevant to callers that only need a listed policy. */
+  async create(name: string): Promise<Policy> {
+    const data = {
+      name,
+      schedules: [
+        {
+          schedule: { minute: '0', hour: '3', dayOfMonth: '*', month: '*', dayOfWeek: '*' },
+          retainDays: 7,
+        },
+      ],
+    };
+    const response = await this.request.post(this.url(CcApiRoutes.POLICIES), {
+      headers: this.headers,
+      data,
+    });
+    await assertResponseOk(response, 'POST policies');
+    return (await response.json()) as Policy;
+  }
+
   async findByName(name: string): Promise<Policy | undefined> {
     const response = await this.request.get(this.url(CcApiRoutes.POLICIES), {
       headers: this.headers,
