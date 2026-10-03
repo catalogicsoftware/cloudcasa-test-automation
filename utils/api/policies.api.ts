@@ -1,9 +1,23 @@
 import { CcApiRoutes } from '@data/api-routes';
 import { assertResponseOk } from '@utils/generic';
 import { BaseApi } from './base.api';
-import type { PoliciesListResponse, Policy } from '../../types/api/policies';
+import type { CreatePolicyRequest, PoliciesListResponse, Policy } from '../../types/api/policies';
 
 export class PoliciesApi extends BaseApi {
+  /** No timezone is sent — the backend defaults it to "UTC", which keeps the caller from hardcoding one. */
+  async create(name: string, cron: string, retainDays: number): Promise<Policy> {
+    const data: CreatePolicyRequest = {
+      name,
+      schedules: [{ retainDays, locked: false, schedule: { cronSpec: cron } }],
+    };
+    const response = await this.request.post(this.url(CcApiRoutes.POLICIES), {
+      headers: this.headers,
+      data,
+    });
+    await assertResponseOk(response, 'POST policies');
+    return (await response.json()) as Policy;
+  }
+
   async findByName(name: string): Promise<Policy | undefined> {
     const response = await this.request.get(this.url(CcApiRoutes.POLICIES), {
       headers: this.headers,
