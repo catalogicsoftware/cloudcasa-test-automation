@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { ScheduleCase, TimeOfDay, Weekday } from '../types/data/policy';
+import type { DailySchedule, ScheduleCase, TimeOfDay, Weekday } from '../types/data/policy';
 
 /** Checkbox id suffix paired with the day name the schedule rule spells out. */
 const WEEKDAYS: Weekday[] = [
@@ -24,9 +24,20 @@ const randomTime = (): TimeOfDay => {
 /** 30 is the cap the retention field itself carries on the free plan; a larger value silently disables "Add to schedule". */
 const randomRetention = (): number => faker.number.int({ min: 1, max: 30 });
 
+const to24Hour = (time: TimeOfDay): number =>
+  time.meridiem === 'PM' ? (time.hour % 12) + 12 : time.hour % 12;
+
 /** The Custom field takes a raw expression, so the same random time is restated in 24-hour form. */
-const cronAt = (time: TimeOfDay): string =>
-  `${time.minute} ${time.meridiem === 'PM' ? (time.hour % 12) + 12 : time.hour % 12} * * *`;
+const cronAt = (time: TimeOfDay): string => `${time.minute} ${to24Hour(time)} * * *`;
+
+/**
+ * The cron the app itself sends for a Daily schedule: the day-of-month field carries the
+ * interval as a step (every Nth day, step syntax, even at N=1) — measured against the live
+ * app, since a plain wildcard there is indistinguishable from a Custom-typed expression and
+ * lists as "Hourly" instead.
+ */
+export const dailyCron = (schedule: DailySchedule): string =>
+  `${schedule.time.minute} ${to24Hour(schedule.time)} */${schedule.interval} * *`;
 
 /**
  * One generated test per frequency, the way the storage catalog generates one per

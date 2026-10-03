@@ -11,6 +11,14 @@ export const testResourceName = (label: string): string =>
 
 export const isTestResourceName = (name: string): boolean => name.startsWith(TEST_RESOURCE_PREFIX);
 
+/**
+ * Wraps a generated name for a table-row/text locator. `hasText` does a case-insensitive
+ * substring match on a plain string (rule 14) — a generated name has no regex metacharacters
+ * to collide with, but a RegExp keeps every call site consistent regardless.
+ */
+export const testResourceNamePattern = (name: string): RegExp =>
+  new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
 const slug = (label: string): string =>
   label
     .toLowerCase()
