@@ -10,6 +10,9 @@ export const STORAGE_LIST_RELOAD_TIMEOUT = 30_000;
 /** The policies list reloads itself the same way once the Add policy dialog closes. */
 export const POLICY_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The backups list reloads itself the same way after a full-page reload. */
+export const BACKUPS_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
