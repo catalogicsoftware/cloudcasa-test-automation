@@ -102,6 +102,23 @@ export class Table extends Component {
     });
   }
 
+  /**
+   * The "No data to display" placeholder is a sibling of <table>, not a descendant
+   * (it replaces the rows, it does not sit inside them) — the nearest cc-table
+   * ancestor is what holds both.
+   */
+  private get emptyState(): Locator {
+    return this.getLocator().locator('xpath=ancestor::cc-table[1]').locator('.table__no-info');
+  }
+
+  async shouldBeEmpty(): Promise<void> {
+    await test.step(`${this.typeOfUpper} "${this.componentName}" should show its empty state`, async () => {
+      await expect(this.emptyState, {
+        message: `The ${this.typeOf} with name "${this.componentName}" and locator "${this.locator}" does not show its empty state`,
+      }).toBeVisible();
+    });
+  }
+
   /** The actions panel is CSS-revealed only while its wrapper button is hovered; an action may be a button or a link (see README.md). */
   async clickRowAction(rowText: string | RegExp, actionName: string): Promise<void> {
     await test.step(`Click "${actionName}" action in row "${rowText}" of ${this.typeOf} "${this.componentName}"`, async () => {
