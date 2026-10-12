@@ -10,6 +10,9 @@ export const STORAGE_LIST_RELOAD_TIMEOUT = 30_000;
 /** The policies list reloads itself the same way once the Add policy dialog closes. */
 export const POLICY_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The clusters list reloads itself the same way once the install instructions dialog closes. */
+export const CLUSTERS_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
