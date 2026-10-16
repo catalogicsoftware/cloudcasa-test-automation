@@ -4,6 +4,8 @@ import { BasePage } from '../base.page';
 import { Input } from '@page-factory/input';
 import { Link } from '@page-factory/link';
 import { Button } from '@page-factory/button';
+import { Checkbox } from '@page-factory/checkbox';
+import { Container } from '@page-factory/container';
 import { extractPdfText } from '@utils/pdf';
 import { compareText, TextComparisonResult } from '@utils/text-compare';
 
@@ -58,8 +60,33 @@ export class SignUpPage extends BasePage {
     name: 'Master Service Agreement',
   });
 
+  readonly consentCheckbox = new Checkbox({
+    page: this.page,
+    locator: '#consentGiven',
+    name: 'MSA and Privacy Policy consent',
+  });
+
+  readonly businessEmailMessage = new Container({
+    page: this.page,
+    locator: '#email ~ app-field-messages',
+    name: 'Business Email field message',
+  });
+
+  readonly passwordMessage = new Container({
+    page: this.page,
+    locator: '#password ~ app-field-messages',
+    name: 'Password field message',
+  });
+
+  private readonly recaptchaFrame = this.page.locator('iframe[title="reCAPTCHA"]');
+
   constructor(page: Page) {
     super(page);
+  }
+
+  /** The widget is a live Google challenge here, never a disabled test stub. */
+  async isRecaptchaActive(): Promise<boolean> {
+    return this.recaptchaFrame.isVisible();
   }
 
   async goto(
