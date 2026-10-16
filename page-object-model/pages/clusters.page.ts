@@ -8,6 +8,9 @@ import { ClustersSidebar } from '@page-object-model/components/clusters-sidebar.
 import { DefineClusterBackupWizard } from '@page-object-model/components/wizards/define-cluster-backup.wizard';
 import { AddClusterSidebar } from '@page-object-model/components/drawers/add-cluster.drawer';
 import { InstallClusterDialog } from '@page-object-model/components/dialogs/install-cluster.dialog';
+import { AddClusterDialog } from '@page-object-model/components/dialogs/add-cluster.dialog';
+import { InstallAgentDialog } from '@page-object-model/components/dialogs/install-agent.dialog';
+import { ProceedConfirmation } from '@page-object-model/components/proceed-confirmation.components';
 
 export class ClustersPage extends BasePage {
   readonly clustersContainer = new Container({
@@ -35,6 +38,9 @@ export class ClustersPage extends BasePage {
   });
   readonly addClusterSidebar = new AddClusterSidebar(this.page);
   readonly installClusterDialog = new InstallClusterDialog(this.page);
+  readonly addClusterDialog = new AddClusterDialog(this.page);
+  readonly installAgentDialog = new InstallAgentDialog(this.page);
+  readonly removeConfirmation = new ProceedConfirmation(this.page);
 
   private readonly CLUSTER_COLUMNS = [
     'Name',
@@ -70,5 +76,10 @@ export class ClustersPage extends BasePage {
     await this.addClusterButton.click();
     await this.addClusterSidebar.shouldBeOpened();
     return this.addClusterSidebar;
+  }
+
+  async openAddClusterDialog(): Promise<AddClusterDialog> {
+    await this.addClusterButton.click();
+    return this.addClusterDialog;
   }
 }

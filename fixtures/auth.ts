@@ -149,8 +149,7 @@ export const test = base.extend<AuthFixtures>({
     await clean();
   },
 
-  // Same contract as createdObjectStorages: the name is pushed right after registration
-  // succeeds, so a failure anywhere after it (including test.fixme()) still cleans up.
+  // Same contract as createdObjectStorages: a failure after the name is pushed (test.fixme() included) still cleans up.
   createdClusters: async ({ ccApi }, use) => {
     const names: string[] = [];
     await use(names);

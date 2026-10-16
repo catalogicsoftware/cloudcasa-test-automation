@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { LocatorProps } from '../types/page-factory/component';
 import { Component } from './component';
 
@@ -18,6 +18,20 @@ export class Checkbox extends Component {
     await test.step(`Unchecking the ${this.typeOf} wiht name"${this.componentName}"`, async () => {
       const locator = this.getLocator(locatorProps);
       await locator.uncheck();
+    });
+  }
+
+  async shouldBeChecked(locatorProps: LocatorProps = {}): Promise<void> {
+    await test.step(`${this.typeOfUpper} "${this.componentName}" should be checked`, async () => {
+      const locator = this.getLocator(locatorProps);
+      await expect(locator).toBeChecked();
+    });
+  }
+
+  async shouldNotBeChecked(locatorProps: LocatorProps = {}): Promise<void> {
+    await test.step(`${this.typeOfUpper} "${this.componentName}" should not be checked`, async () => {
+      const locator = this.getLocator(locatorProps);
+      await expect(locator).not.toBeChecked();
     });
   }
 }
