@@ -9,7 +9,7 @@ import { CcApiRoutes } from '@data/api-routes';
 import { BACKEND_PROBE_TIMEOUT } from '@data/timeouts';
 import type { ScheduleCase } from '../../../types/data/policy';
 
-const DIALOG = 'mat-dialog-container app-policy';
+export const DIALOG = 'mat-dialog-container app-policy';
 
 /**
  * Formly numbers the field ids per form instance (`formly_24_input_hours_4`), so ids are
@@ -33,8 +33,11 @@ export class AddPolicyDialog {
   readonly createPolicy: Button;
   readonly cancel: Button;
 
-  constructor(protected readonly page: Page) {
-    this.dialog = new Container({ page, locator: DIALOG, name: 'Add policy' });
+  constructor(
+    protected readonly page: Page,
+    dialogName = 'Add policy',
+  ) {
+    this.dialog = new Container({ page, locator: DIALOG, name: dialogName });
     this.policyName = new Input({
       page,
       locator: `${DIALOG} input[id*="input_name"]`,
@@ -136,12 +139,16 @@ export class AddPolicyDialog {
       this.selectedTimezone());
   }
 
-  /** Picks a timezone out of the options the app itself offers, so no random value can miss the list. */
-  async selectRandomTimezone(): Promise<string> {
+  /**
+   * Picks a timezone out of the options the app itself offers, so no random value can miss the
+   * list. Pass the policy's current value as `exclude` on an edit, so the pick is guaranteed to
+   * actually change it.
+   */
+  async selectRandomTimezone(exclude?: string): Promise<string> {
     return test.step('Select a random timezone', async () => {
       const options = await this.timezone.getLocator().locator('option').allInnerTexts();
       const timezone = faker.helpers.arrayElement(
-        options.map(option => option.trim()).filter(Boolean),
+        options.map(option => option.trim()).filter(option => option && option !== exclude),
       );
 
       await this.timezone.getLocator().selectOption({ label: timezone });

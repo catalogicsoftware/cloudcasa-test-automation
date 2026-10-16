@@ -8,3 +8,14 @@ export type Policy = {
 export type PoliciesListResponse = {
   _items: Policy[];
 };
+
+export type PolicySchedule = {
+  retainDays: number;
+  locked: boolean;
+  schedule: { cronSpec: string };
+};
+
+export type CreatePolicyRequest = {
+  name: string;
+  schedules: PolicySchedule[];
+};
