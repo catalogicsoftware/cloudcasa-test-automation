@@ -42,6 +42,7 @@ type Pages = {
   registeredUser: InvitedUser;
   ccApi: CcApi;
   resetPwdAccountLock: void;
+  helpModalAccountLock: void;
 };
 
 type WorkerFixtures = {
@@ -143,6 +144,14 @@ export const test = base.extend<Pages, WorkerFixtures>({
   // only by those files — every other test is unaffected and keeps running fully in parallel.
   resetPwdAccountLock: async ({}, use) => {
     const release = await acquireLock('reset-pwd-account');
+    await use();
+    release();
+  },
+
+  // The help modal shows only while the shared account has no cluster and no "do not show again" flag, so the tests
+  // that need it and the tests that break that state take turns; request it before loggedInPage.
+  helpModalAccountLock: async ({}, use) => {
+    const release = await acquireLock('help-modal-account');
     await use();
     release();
   },

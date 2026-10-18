@@ -1,14 +1,15 @@
 // spec: spec/clusters/clusters.md (TC-CL-002, TC-CL-003, TC-CL-005, TC-CL-007)
 
 import { expect, test } from '@fixtures/auth';
-import { CLUSTERS_LIST_RELOAD_TIMEOUT, CLUSTER_TEST_TIMEOUT } from '@data/timeouts';
+import { CLUSTERS_LIST_RELOAD_TIMEOUT, LOCKED_CLUSTER_TEST_TIMEOUT } from '@data/timeouts';
 import { testResourceName } from '@utils/resource-names';
 import { INSTALL_COMMAND_PATTERN } from '@page-object-model/components/dialogs/install-agent.dialog';
 
 test.describe('Clusters', () => {
-  test.describe.configure({ timeout: CLUSTER_TEST_TIMEOUT });
+  test.describe.configure({ timeout: LOCKED_CLUSTER_TEST_TIMEOUT });
 
   test('The user registers a cluster and removes it', async ({
+    helpModalAccountLock,
     loggedInPage,
     dashboardPage,
     clustersPage,
@@ -73,6 +74,8 @@ test.describe('Clusters', () => {
     await dialog.close.click();
 
     // 16. Make sure that the clusters table holds the new cluster.
+    // The live list refresh is pushed per user and gets lost when another session of the shared account signs in.
+    await clustersPage.reloadPage();
     await clustersPage.clustersTable.shouldHaveRow(name, CLUSTERS_LIST_RELOAD_TIMEOUT);
 
     // 17. Make sure that the state of the cluster is "Pending" or an equal not-connected state.

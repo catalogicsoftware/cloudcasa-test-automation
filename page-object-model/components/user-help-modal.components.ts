@@ -3,7 +3,7 @@ import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
 import { Radio } from '@page-factory/radio';
 import { Title } from '@page-factory/title';
-import { HELP_MODAL_REAPPEAR_TIMEOUT } from '@data/timeouts';
+import { HELP_MODAL_APPEAR_TIMEOUT, HELP_MODAL_REAPPEAR_TIMEOUT } from '@data/timeouts';
 
 export class UserHelpModal {
   readonly container: Container;
@@ -17,7 +17,7 @@ export class UserHelpModal {
   constructor(page: Page) {
     this.container = new Container({ page, locator: 'app-help-user', name: 'Help modal' });
     this.title = new Title({ page, locator: '.modal-title', name: 'Need some help?' });
-    this.closeButton = new Button({ page, locator: '.close', name: 'Close' });
+    this.closeButton = new Button({ page, locator: 'app-help-user .close', name: 'Close' });
     this.bookDemoOption = new Radio({
       page,
       locator: this.optionInputLocator('Book a demo session with a CloudCasa expert'),
@@ -45,20 +45,25 @@ export class UserHelpModal {
     return `.custom-radio:has(label:text-is("${labelText}")) input`;
   }
 
+  // The app opens the modal only while the account has no cluster or cloud account, which parallel tests change.
   async closeModal(): Promise<void> {
-    await this.closeButton.click();
+    await this.closeIfShownWithin(HELP_MODAL_APPEAR_TIMEOUT);
   }
 
   // The modal can reappear after navigation unless the user disables it, but right after
   // goto() Angular hasn't rendered it yet, so a point-in-time isVisible() check would miss it.
   async closeIfVisible(): Promise<void> {
-    const reappeared = await this.closeButton
+    await this.closeIfShownWithin(HELP_MODAL_REAPPEAR_TIMEOUT);
+  }
+
+  private async closeIfShownWithin(timeout: number): Promise<void> {
+    const shown = await this.closeButton
       .getLocator()
-      .waitFor({ state: 'visible', timeout: HELP_MODAL_REAPPEAR_TIMEOUT })
+      .waitFor({ state: 'visible', timeout })
       .then(() => true)
       .catch(() => false);
-    if (reappeared) {
-      await this.closeModal();
+    if (shown) {
+      await this.closeButton.click();
     }
   }
 

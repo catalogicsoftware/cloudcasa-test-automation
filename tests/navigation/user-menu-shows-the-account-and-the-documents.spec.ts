@@ -2,8 +2,11 @@
 
 import { expect, test } from '@fixtures/auth';
 import { Link } from '@page-factory/link';
+import { LEGAL_DOCUMENTS_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Global Navigation & User Menu', () => {
+  test.describe.configure({ timeout: LEGAL_DOCUMENTS_TEST_TIMEOUT });
+
   test('The user menu shows the identity and opens the legal documents', async ({
     loggedInPage,
     dashboardPage,

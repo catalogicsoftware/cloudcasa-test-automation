@@ -8,10 +8,13 @@ import {
 } from '@utils/agent-manifest';
 import { parseImageReference } from '@utils/image-reference';
 import { registryHasTag } from '@utils/container-registry';
-import { CLUSTERS_LIST_RELOAD_TIMEOUT } from '@data/timeouts';
+import { CLUSTERS_LIST_RELOAD_TIMEOUT, LOCKED_CLUSTER_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Clusters', () => {
+  test.describe.configure({ timeout: LOCKED_CLUSTER_TEST_TIMEOUT });
+
   test('The install manifest holds a pull secret and a good image tag', async ({
+    helpModalAccountLock,
     loggedInPage,
     dashboardPage,
     clustersPage,
@@ -77,6 +80,8 @@ test.describe('Clusters', () => {
     );
 
     // 12. Make sure that the clusters table holds the new cluster.
+    // The live list refresh is pushed per user and gets lost when another session of the shared account signs in.
+    await clustersPage.reloadPage();
     await clustersPage.clustersTable.shouldHaveRow(clusterName, CLUSTERS_LIST_RELOAD_TIMEOUT);
 
     // Cleanup (13.): createdClusters deletes the cluster through the API after the test.

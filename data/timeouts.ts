@@ -28,6 +28,29 @@ export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 /** Test budget for the cluster journey: registration, the install instructions dialog, and a removal with a confirmation and reload. */
 export const CLUSTER_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 90_000;
 
+/** A request the test runner sends itself (APIRequestContext, not the browser) regularly takes ~16s in CI. */
+export const RUNNER_REQUEST_TIMEOUT = 20_000;
+
+/** The help-modal "do not show again" journey: a sign-in that staging regularly makes twice, a re-login, and two preference resets of two requests each. */
+const HELP_MODAL_DISMISS_JOURNEY = LOGIN_REDIRECT_TIMEOUT * 3 + RUNNER_REQUEST_TIMEOUT * 4;
+
+/** Worst-case wait for the help-modal-account lock (fixtures/base.ts): the longest journey that holds it. */
+const HELP_MODAL_LOCK_WAIT = Math.max(CLUSTER_TEST_TIMEOUT, HELP_MODAL_DISMISS_JOURNEY);
+
+/** Test budget for a cluster journey that waits its turn for the help-modal-account lock. */
+export const LOCKED_CLUSTER_TEST_TIMEOUT = CLUSTER_TEST_TIMEOUT + HELP_MODAL_LOCK_WAIT;
+
+/** Test budget for the "do not show again" journey when it waits its turn for the help-modal-account lock. */
+export const HELP_MODAL_DISMISS_TEST_TIMEOUT = HELP_MODAL_DISMISS_JOURNEY + HELP_MODAL_LOCK_WAIT;
+
+/** Test budget for the first-login help-modal check when it waits its turn for the help-modal-account lock. */
+export const HELP_MODAL_FIRST_LOGIN_TEST_TIMEOUT =
+  LOGIN_REDIRECT_TIMEOUT * 2 + HELP_MODAL_LOCK_WAIT;
+
+/** Test budget for the user-menu journey: a sign-in that staging regularly makes twice plus one HEAD request and one popup per legal document. */
+export const LEGAL_DOCUMENTS_TEST_TIMEOUT =
+  LOGIN_REDIRECT_TIMEOUT * 2 + RUNNER_REQUEST_TIMEOUT * 3 + 30_000;
+
 /** Mirrors playwright.config.ts navigationTimeout: the ceiling for a single top-level navigation. */
 export const NAVIGATION_TIMEOUT = 30_000;
 
@@ -41,6 +64,9 @@ export const POST_LOGIN_LANDING_TEST_TIMEOUT =
 
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;
+
+/** The help modal opens once the dashboard stats arrive, which can take several seconds in CI; past this it isn't coming. */
+export const HELP_MODAL_APPEAR_TIMEOUT = 15_000;
 
 /** The help modal can reappear after a full-page navigation but hasn't rendered yet right after goto() — long enough for it to show, short enough to fall through when it doesn't. */
 export const HELP_MODAL_REAPPEAR_TIMEOUT = 3_000;
