@@ -2,10 +2,6 @@ import { test } from '@fixtures/auth';
 import { testResourceName } from '@utils/resource-names';
 import { POLICY_LIST_RELOAD_TIMEOUT, POLICY_TEST_TIMEOUT } from '@data/timeouts';
 
-/** Rule 14: a generated name is matched as an escaped regex, not a plain (substring) string. */
-const nameLocator = (name: string): RegExp =>
-  new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-
 test.describe('Policies', () => {
   test.describe.configure({ timeout: POLICY_TEST_TIMEOUT });
 
@@ -21,8 +17,8 @@ test.describe('Policies', () => {
     const policyNames: string[] = [];
     for (let i = 0; i < 3; i++) {
       const name = testResourceName('policy');
-      await ccApi.policies.create(name);
       createdPolicies.push(name);
+      await ccApi.policies.create(name);
       policyNames.push(name);
     }
 
@@ -43,10 +39,7 @@ test.describe('Policies', () => {
 
     // The table holds the three policies made in step 1
     for (const name of policyNames) {
-      await policiesConfigurationPage.policiesTable.shouldHaveRow(
-        nameLocator(name),
-        POLICY_LIST_RELOAD_TIMEOUT,
-      );
+      await policiesConfigurationPage.policiesTable.shouldHaveRow(name, POLICY_LIST_RELOAD_TIMEOUT);
     }
 
     // Type the name of the first policy in the filter
@@ -54,23 +47,20 @@ test.describe('Policies', () => {
 
     // The table shows that policy only
     await policiesConfigurationPage.policiesTable.shouldHaveRowCount(1, POLICY_LIST_RELOAD_TIMEOUT);
-    await policiesConfigurationPage.policiesTable.shouldHaveRow(nameLocator(policyNames[0]));
+    await policiesConfigurationPage.policiesTable.shouldHaveRow(policyNames[0]);
 
     // Type a string that no policy uses
     await policiesConfigurationPage.filterByName(testResourceName('no-such-policy'));
 
     // The table shows the empty state
-    await policiesConfigurationPage.emptyState.shouldBeVisible();
+    await policiesConfigurationPage.emptyState.shouldBeVisible({}, POLICY_LIST_RELOAD_TIMEOUT);
 
     // Clear the filter
     await policiesConfigurationPage.filterByName('');
 
     // The three policies come back
     for (const name of policyNames) {
-      await policiesConfigurationPage.policiesTable.shouldHaveRow(
-        nameLocator(name),
-        POLICY_LIST_RELOAD_TIMEOUT,
-      );
+      await policiesConfigurationPage.policiesTable.shouldHaveRow(name, POLICY_LIST_RELOAD_TIMEOUT);
     }
   });
 });

@@ -38,12 +38,12 @@ export abstract class Component {
     return `The ${this.typeOf} with name "${this.componentName}" and locator "${this.locator}" ${action}`;
   }
 
-  async shouldBeVisible(locatorProps: LocatorProps = {}): Promise<void> {
+  async shouldBeVisible(locatorProps: LocatorProps = {}, timeout?: number): Promise<void> {
     await test.step(`${this.typeOfUpper} "${this.componentName}" should be visible on the page`, async () => {
       const locator = this.getLocator(locatorProps);
       await expect(locator, {
         message: this.getErrorMessage('is not visible on the page'),
-      }).toBeVisible();
+      }).toBeVisible({ timeout });
     });
   }
 
