@@ -20,7 +20,7 @@ export default defineConfig({
     // No actionTimeout: ~20s of added latency in CI made a 15s cap fail 17 of 19 tests.
     navigationTimeout: 30 * 1000,
     ignoreHTTPSErrors: true,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     headless: !!process.env.CI,
