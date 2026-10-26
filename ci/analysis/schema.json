@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["headline", "verdict", "summary", "problems", "passed_highlights"],
+  "properties": {
+    "headline": { "type": "string" },
+    "verdict": { "type": "string", "enum": ["passed", "failed", "unstable"] },
+    "summary": { "type": "string" },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tests",
+          "title",
+          "area",
+          "what_happened",
+          "likely_cause",
+          "category",
+          "next_step"
+        ],
+        "properties": {
+          "tests": { "type": "array", "items": { "type": "string" } },
+          "title": { "type": "string" },
+          "area": { "type": "string" },
+          "what_happened": { "type": "string" },
+          "likely_cause": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["product-bug", "test-defect", "environment", "flaky", "unknown"]
+          },
+          "next_step": { "type": "string" }
+        }
+      }
+    },
+    "passed_highlights": { "type": "array", "items": { "type": "string" } }
+  }
+}
