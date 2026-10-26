@@ -28,6 +28,19 @@ export default tseslint.config(
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
+    // CI helper scripts run under plain Node, outside tsconfig.
+    files: ['ci/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
+      },
+    },
+  },
+  {
     // Playwright fixtures declare dependencies as `async ({}, use)` when they need none.
     files: ['fixtures/**/*.ts'],
     rules: { 'no-empty-pattern': 'off' },

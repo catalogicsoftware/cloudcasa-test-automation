@@ -53,8 +53,9 @@ for the `post` block to publish as this build's results.
 - **Outbound HTTPS from the node** to `*.testmo.net` and to the Teams webhook's own host —
   read it out of the `teams-webhook-url` credential rather than assuming, because Power
   Automate issues these on both `*.logic.azure.com` and `*.api.powerplatform.com` depending
-  on the tenant. Every other integration talks inward only, so these are the paths that may
-  need the corporate proxy.
+  on the tenant. The run analysis adds two from inside the test container: the Foundry host
+  (`FOUNDRY_ENDPOINT`) and `api.github.com`. Every other integration talks inward only, so these
+  are the paths that may need the corporate proxy.
 - A pipeline job pointed at this repo with **Script Path** = `ci/Jenkinsfile`.
 
 ## Publish target variables
@@ -69,15 +70,20 @@ need the Folder Properties plugin **and** a `withFolderProperties { }` wrapper i
 the pipeline, so they are not a drop-in alternative here — on a controller shared
 with jobs that use these names, prefix them instead.
 
-| Variable             | What it is                                                      | Value in use                            |
-| -------------------- | --------------------------------------------------------------- | --------------------------------------- |
-| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                   | `http://cc-allure.ad.catalogic.us:5050` |
-| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history | `cloudcasa-e2e`                         |
-| `NEXUS_URL`          | Nexus root, no trailing slash                                   | `https://cc-nexus.ad.catalogic.us`      |
-| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                 | `cloudcasa-test-reports`                |
-| `TESTMO_URL`         | Testmo Cloud tenant                                             | not provisioned yet                     |
-| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL               | not provisioned yet                     |
-| `TEAMS_NOTIFY`       | `true` enables the Teams card; anything else switches it off    | `true`                                  |
+| Variable             | What it is                                                              | Value in use                               |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                           | `http://cc-allure.ad.catalogic.us:5050`    |
+| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history         | `cloudcasa-e2e`                            |
+| `NEXUS_URL`          | Nexus root, no trailing slash                                           | `https://cc-nexus.ad.catalogic.us`         |
+| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                         | `cloudcasa-test-reports`                   |
+| `TESTMO_URL`         | Testmo Cloud tenant                                                     | not provisioned yet                        |
+| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL                       | not provisioned yet                        |
+| `TEAMS_NOTIFY`       | `true` enables the Teams card; anything else switches it off            | `true`                                     |
+| `FOUNDRY_ENDPOINT`   | Microsoft Foundry resource URL for the run analysis; unset = no AI text | `https://<resource>.services.ai.azure.com` |
+| `FOUNDRY_DEPLOYMENT` | Foundry model deployment name                                           | `gpt-5.4-mini`                             |
+| `GITHUB_ISSUES`      | `true` files flaky tests as GitHub issues                               | not enabled yet                            |
+| `GITHUB_REPO`        | Repo the issues go to (default: this one)                               | —                                          |
+| `ISSUE_CATEGORIES`   | Problem categories filed as issues (default: `flaky`)                   | —                                          |
 
 The Testmo tenant and project do not exist yet, so those two stay unset and that
 step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.
@@ -104,6 +110,7 @@ ALLURE_URL / ALLURE_PROJECT_ID not set in Jenkins — skipping the Allure publis
 NEXUS_URL / NEXUS_REPORTS_REPO not set in Jenkins. Falling back to archiving on the controller so reports are not lost during setup.
 TESTMO_URL / TESTMO_PROJECT_ID not set in Jenkins — skipping the Testmo submit.
 TEAMS_NOTIFY not set to true in Jenkins — skipping the Teams notification.
+Neither TEAMS_NOTIFY nor GITHUB_ISSUES set to true in Jenkins — skipping the run analysis.
 ```
 
 The "value in use" column exists so a fresh controller can be brought up without
@@ -153,18 +160,20 @@ public API base. This is deliberate — its testmail predecessor documented a de
 it did not implement, and a live run lost every email test to `TypeError: Failed to
 parse URL from undefined?apikey=...` before the missing credential was added.
 
-Five more credentials are used by the publish steps in the `post` block. The
-Allure, Nexus and Teams ones run on the node; the Testmo one runs inside the test
-image, which is why its key needs the `IN_*` indirection described under Troubleshooting.
-Two are **Username with password**, one a **Secret file** and two **Secret text**:
+Seven more credentials are used by the publish steps in the `post` block. The
+Allure, Nexus and Teams ones run on the node; the Testmo, Foundry and GitHub ones run inside the
+test image, which is why their keys need the `IN_*` indirection described under Troubleshooting.
+Two are **Username with password**, one a **Secret file** and four **Secret text**:
 
-| Credential ID       | Kind            | What it is                                                                                                                |
-| ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `allure-creds`      | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) — must contain no `"` or `\`, see below |
-| `nexus-creds`       | user/password   | a Nexus account with **write** access to the reports repo                                                                 |
-| `internal-ca-cert`  | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                                                             |
-| `testmo-token`      | Secret text     | Testmo API key with write access for automation runs                                                                      |
-| `teams-webhook-url` | Secret text     | Power Automate Workflows webhook URL for the target Teams channel                                                         |
+| Credential ID         | Kind            | What it is                                                                                                                |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `allure-creds`        | user/password   | the Allure service admin user (`SECURITY_USER` / `SECURITY_PASS` from its `.env`) — must contain no `"` or `\`, see below |
+| `nexus-creds`         | user/password   | a Nexus account with **write** access to the reports repo                                                                 |
+| `internal-ca-cert`    | **Secret file** | PEM of the internal root CA that signed the Nexus certificate                                                             |
+| `testmo-token`        | Secret text     | Testmo API key with write access for automation runs                                                                      |
+| `teams-webhook-url`   | Secret text     | Power Automate Workflows webhook URL for the target Teams channel                                                         |
+| `foundry-api-key`     | Secret text     | Key of the Foundry deployment; bound only when `FOUNDRY_ENDPOINT` is set                                                  |
+| `github-issues-token` | Secret text     | Fine-grained token, **Issues: read and write** on `GITHUB_REPO` only; bound only when `GITHUB_ISSUES` is `true`           |
 
 `allure-creds` has one constraint: the Allure login body is a JSON document built
 with `printf` in the `post` block, so a password containing `"` or `\` produces
@@ -249,19 +258,15 @@ Four publish targets, all off the controller:
   and failure messages only: no attachments (they are already in Allure and Nexus)
   and no links to manual test cases. It runs inside the test image because the CLI is
   installed there, not on the node.
-- **Teams gets one card per build**, sent last in the `post` block but reporting the verdict as
-  it stood **before** any publish step ran — a broken Nexus or Testmo upload leaves the build
-  `UNSTABLE` in Jenkins without recolouring the card, so a yellow card in the channel points at
-  the test run rather than at an unconfigured publish target. It carries that verdict, a
-  per-folder passed/failed/broken/skipped breakdown, and this build's Allure link — no Nexus, no
-  Testmo. The breakdown groups `allure-results/*-result.json` by the top-level `tests/<folder>/`
-  segment of each spec's `fullName` — the same grouping Allure's own Suites tab uses — so a single
-  failing test doesn't read as the whole run being red; it is computed by a small Node script run
-  inside `TEST_IMAGE` (only Docker + curl are guaranteed on the node itself) and is skipped, not
-  fatal, if `allure-results/` is missing or the summary step errors. If Allure was not published
-  the card still goes out; it links the Jenkins build instead when `BUILD_URL` is configured,
-  and carries no link at all otherwise — silence would be indistinguishable from the pipeline
-  never having run.
+- **Teams gets one card per build, written by a model** — `ci/analysis/analyze.mjs`, run inside
+  `TEST_IMAGE`, turns `allure-results/` into a plain-English report (what broke, the likely cause,
+  the next step, grouped by root cause), files **flaky** tests as GitHub issues for the
+  coding agent and writes the card; the node only POSTs it. Details, redaction and cost are in
+  `ci/analysis/README.md`. Without Foundry configured, or when the model call fails, the card still
+  goes out with the counts and each failure's error line; when the analysis step itself dies, a
+  bare card with the Jenkins verdict and a link goes out instead — silence would be
+  indistinguishable from the pipeline never having run. It links this build's Allure report, or
+  the Jenkins build when Allure was not published and `BUILD_URL` is configured.
 
 > `playwright.config.ts` enables the `allure-playwright` reporter unconditionally,
 > so a local `npm test` and a CI run produce the same results. `allure-playwright`
