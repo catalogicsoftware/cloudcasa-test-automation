@@ -5,6 +5,7 @@ import { Container } from '@page-factory/container';
 import { Input } from '@page-factory/input';
 import { Table } from '@page-factory/table';
 import { AddPolicyDialog } from '@page-object-model/components/dialogs/add-policy.dialog';
+import { EditPolicyDialog } from '@page-object-model/components/dialogs/edit-policy.dialog';
 import { ProceedConfirmation } from '@page-object-model/components/proceed-confirmation.components';
 import { expectedFrequency, expectedRetention, expectedRule } from '@data/policies';
 import { POLICY_LIST_RELOAD_TIMEOUT } from '@data/timeouts';
@@ -38,6 +39,7 @@ export class PoliciesConfigurationPage extends BasePage {
     name: 'Empty policies list',
   });
   readonly addPolicyDialog = new AddPolicyDialog(this.page);
+  readonly editPolicyDialog = new EditPolicyDialog(this.page);
   readonly removeConfirmation = new ProceedConfirmation(this.page);
 
   constructor(page: Page) {
@@ -65,8 +67,18 @@ export class PoliciesConfigurationPage extends BasePage {
     });
   }
 
+  /** Opens the dialog without asserting it — the caller checks `shouldBeOpened()` itself. */
+  async openEditPolicyDialog(name: string | RegExp): Promise<EditPolicyDialog> {
+    await this.policiesTable.clickRowAction(name, 'Edit');
+    return this.editPolicyDialog;
+  }
+
   /** Every schedule value typed into the dialog must come back out of the Schedules cell. */
-  async shouldListPolicy(name: string, schedule: ScheduleCase, timezone: string): Promise<void> {
+  async shouldListPolicy(
+    name: string | RegExp,
+    schedule: ScheduleCase,
+    timezone: string,
+  ): Promise<void> {
     await test.step(`Policy "${name}" should be listed with its ${schedule.label} schedule`, async () => {
       await this.policiesTable.shouldHaveRow(name, POLICY_LIST_RELOAD_TIMEOUT);
       // The cell is a nested table; the frequency is styled uppercase, so it is matched case-insensitively.

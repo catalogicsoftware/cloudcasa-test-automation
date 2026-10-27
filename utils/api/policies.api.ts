@@ -1,19 +1,14 @@
 import { CcApiRoutes } from '@data/api-routes';
 import { assertResponseOk } from '@utils/generic';
 import { BaseApi } from './base.api';
-import type { PoliciesListResponse, Policy } from '../../types/api/policies';
+import type { CreatePolicyRequest, PoliciesListResponse, Policy } from '../../types/api/policies';
 
 export class PoliciesApi extends BaseApi {
-  /** One daily schedule is the minimum the backend accepts; the schedule's own content is irrelevant to callers that only need a listed policy. */
-  async create(name: string): Promise<Policy> {
-    const data = {
+  /** Defaults give a daily 03:00 schedule for callers that only need a listed policy; no timezone is sent, so the backend uses UTC. */
+  async create(name: string, cron = '0 3 */1 * *', retainDays = 7): Promise<Policy> {
+    const data: CreatePolicyRequest = {
       name,
-      schedules: [
-        {
-          schedule: { minute: '0', hour: '3', dayOfMonth: '*', month: '*', dayOfWeek: '*' },
-          retainDays: 7,
-        },
-      ],
+      schedules: [{ retainDays, locked: false, schedule: { cronSpec: cron } }],
     };
     const response = await this.request.post(this.url(CcApiRoutes.POLICIES), {
       headers: this.headers,
