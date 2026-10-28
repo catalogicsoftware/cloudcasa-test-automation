@@ -25,6 +25,14 @@ export class Toast {
     });
   }
 
+  async shouldShowSuccess(message: RegExp): Promise<void> {
+    await test.step(`Success notification should report "${message}"`, async () => {
+      await expect(this.notifications.getLocator(), {
+        message: `No notification matching ${message} appeared`,
+      }).toContainText(message);
+    });
+  }
+
   /**
    * Watches for any toast whose text matches `pattern`, even one that appears and
    * auto-dismisses before a test gets around to asserting on it. Must be called before

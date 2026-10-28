@@ -15,6 +15,7 @@ type AuthFixtures = {
   createdPolicies: string[];
   resetHelpDialogPreference: void;
   createdClusters: string[];
+  createdHooks: string[];
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -150,6 +151,22 @@ export const test = base.extend<AuthFixtures>({
   },
 
   // Same contract as createdObjectStorages: a failure after the name is pushed (test.fixme() included) still cleans up.
+  createdHooks: async ({ ccApi }, use) => {
+    const names: string[] = [];
+    await use(names);
+
+    const failures: string[] = [];
+    for (const name of names) {
+      try {
+        await ccApi.hooks.deleteByName(name);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+    if (failures.length) {
+      throw new Error(`Hook teardown failed for ${failures.join('; ')}`);
+    }
+  },
   createdClusters: async ({ ccApi }, use) => {
     const names: string[] = [];
     await use(names);

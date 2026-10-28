@@ -13,6 +13,9 @@ export const POLICY_LIST_RELOAD_TIMEOUT = 30_000;
 /** The clusters list reloads itself the same way once a cluster is registered or removed. */
 export const CLUSTERS_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The hooks list reloads itself the same way once the hook drawer saves. */
+export const HOOK_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** Email arrival is polled, so the wait for one needs its own bound well past the 5s expect default. */
 export const EMAIL_DELIVERY_TIMEOUT = 90_000;
 
@@ -24,6 +27,9 @@ export const LOGIN_REDIRECT_TIMEOUT = 45_000;
 
 /** Test budget for the policy journey: two reloads and a removal on top of a sign-in that staging regularly makes twice. */
 export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
+
+/** Test budget for a hook journey: a sign-in that staging regularly makes twice, a save and a reload. */
+export const HOOK_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
 /** Test budget for the cluster journey: registration, the install instructions dialog, and a removal with a confirmation and reload. */
 export const CLUSTER_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 90_000;

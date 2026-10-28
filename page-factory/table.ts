@@ -102,13 +102,13 @@ export class Table extends Component {
     });
   }
 
-  /** The actions panel is CSS-revealed only while its wrapper button is hovered (see README.md). */
+  /** The actions panel is CSS-revealed only while its wrapper button is hovered; an action may be a button or a link (see README.md). */
   async clickRowAction(rowText: string | RegExp, actionName: string): Promise<void> {
     await test.step(`Click "${actionName}" action in row "${rowText}" of ${this.typeOf} "${this.componentName}"`, async () => {
       const row = this.getRow(rowText);
       const moreActions = row.locator('button.table__more-actions-wrapper');
       const action = row.locator(
-        'td.table__actions-wrapper button:not(.table__more-actions-wrapper)',
+        'td.table__actions-wrapper :is(button, a):not(.table__more-actions-wrapper)',
         { hasText: actionName },
       );
 
