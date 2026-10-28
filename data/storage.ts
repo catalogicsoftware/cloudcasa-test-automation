@@ -37,6 +37,7 @@ export const deniedCredentialsTarget: S3StorageTarget = {
 
 export const CONNECTIVITY_ERROR = /Could not connect to the endpoint URL/i;
 export const CREDENTIALS_ERROR = /credentials and permissions/i;
+export const BUCKET_ERROR = /Error in accessing bucket/i;
 
 /**
  * Endpoint shapes the GUI rejected while the same bucket worked from the MinIO
