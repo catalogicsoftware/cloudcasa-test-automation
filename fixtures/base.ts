@@ -2,6 +2,7 @@ import { test as base, request as apiRequest } from '@playwright/test';
 import { LoginPage } from '@page-object-model/pages/auth/login.page';
 import { DashboardPage } from '@page-object-model/pages/dashboard.page';
 import { ClustersPage } from '@page-object-model/pages/clusters.page';
+import { BackupsPage } from '@page-object-model/pages/clusters/backups.page';
 import { DatabasesPage } from '@page-object-model/pages/databases.page';
 import { DrPage } from '@page-object-model/pages/dr.page';
 import { ReportsPage } from '@page-object-model/pages/reports.page';
@@ -26,6 +27,7 @@ type Pages = {
   loginPage: LoginPage;
   dashboardPage: DashboardPage;
   clustersPage: ClustersPage;
+  backupsPage: BackupsPage;
   databasesPage: DatabasesPage;
   drPage: DrPage;
   reportsPage: ReportsPage;
@@ -70,6 +72,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   clustersPage: async ({ page }, use) => {
     await use(new ClustersPage(page));
+  },
+  backupsPage: async ({ page }, use) => {
+    await use(new BackupsPage(page));
   },
   databasesPage: async ({ page }, use) => {
     await use(new DatabasesPage(page));
