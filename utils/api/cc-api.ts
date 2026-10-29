@@ -5,6 +5,7 @@ import { ObjectStoresApi } from './object-stores.api';
 import { PoliciesApi } from './policies.api';
 import { DashboardApi } from './dashboard.api';
 import { ClustersApi } from './clusters.api';
+import { HooksApi } from './hooks.api';
 import type { InvitedUser } from '../../types/data/user';
 
 export class CcApi {
@@ -14,6 +15,7 @@ export class CcApi {
   readonly policies: PoliciesApi;
   readonly dashboard: DashboardApi;
   readonly clusters: ClustersApi;
+  readonly hooks: HooksApi;
 
   constructor(request: APIRequestContext) {
     this.roles = new RolesApi(request);
@@ -22,6 +24,7 @@ export class CcApi {
     this.policies = new PoliciesApi(request);
     this.dashboard = new DashboardApi(request);
     this.clusters = new ClustersApi(request);
+    this.hooks = new HooksApi(request);
   }
 
   /** Resolves the role name to its id and sends an organization invitation. */
