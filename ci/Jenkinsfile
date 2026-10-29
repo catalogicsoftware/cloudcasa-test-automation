@@ -289,7 +289,10 @@ pipeline {
                             creds << string(credentialsId: 'foundry-api-key', variable: 'IN_FOUNDRY_CODE')
                         }
                         if (issuesOn) {
-                            creds << string(credentialsId: 'github-access-token', variable: 'IN_GITHUB_CODE')
+                            // A username/password credential; the token is its password.
+                            creds << usernamePassword(credentialsId: 'github-access-token',
+                                                      usernameVariable: 'IN_GITHUB_USER',
+                                                      passwordVariable: 'IN_GITHUB_CODE')
                         }
                         // The test credentials are bound only so the digest can redact their values.
                         withCredentials(creds) {
