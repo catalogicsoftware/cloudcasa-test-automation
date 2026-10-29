@@ -76,7 +76,7 @@ export class StorageConfigurationPage extends BasePage {
   }
 
   /** Every provider detail typed into the wizard must come back out of the storage list. */
-  async shouldListObjectStorage(name: string, target: StorageTargetSpec): Promise<void> {
+  async shouldListObjectStorage(name: string | RegExp, target: StorageTargetSpec): Promise<void> {
     // The backend reports its own provider_type, which is not always the radio the wizard was filled through.
     const listed = listedAs(target);
 
@@ -95,7 +95,7 @@ export class StorageConfigurationPage extends BasePage {
   }
 
   private async shouldListStorage(
-    name: string,
+    name: string | RegExp,
     cells: Record<string, string | undefined>,
   ): Promise<void> {
     await test.step(`Object storage "${name}" should be listed with its provider details`, async () => {
