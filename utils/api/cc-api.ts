@@ -6,6 +6,7 @@ import { PoliciesApi } from './policies.api';
 import { DashboardApi } from './dashboard.api';
 import { ClustersApi } from './clusters.api';
 import { HooksApi } from './hooks.api';
+import { OrgsApi } from './orgs.api';
 import type { InvitedUser } from '../../types/data/user';
 
 export class CcApi {
@@ -16,6 +17,7 @@ export class CcApi {
   readonly dashboard: DashboardApi;
   readonly clusters: ClustersApi;
   readonly hooks: HooksApi;
+  readonly orgs: OrgsApi;
 
   constructor(request: APIRequestContext) {
     this.roles = new RolesApi(request);
@@ -25,6 +27,7 @@ export class CcApi {
     this.dashboard = new DashboardApi(request);
     this.clusters = new ClustersApi(request);
     this.hooks = new HooksApi(request);
+    this.orgs = new OrgsApi(request);
   }
 
   /** Resolves the role name to its id and sends an organization invitation. */

@@ -1,9 +1,13 @@
 // spec: specs/navigation/navigation.md (TC-NAV-008)
 
 import { expect, test } from '@fixtures/auth';
+import { ORGANIZATION_NAME_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Global Navigation & User Menu', () => {
+  test.describe.configure({ timeout: ORGANIZATION_NAME_CHECK_TEST_TIMEOUT });
+
   test('The organization dialog shows the organizations of the user', async ({
+    organizationNameLock,
     loggedInPage,
     dashboardPage,
   }) => {
