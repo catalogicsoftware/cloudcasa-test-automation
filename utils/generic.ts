@@ -18,3 +18,6 @@ export const normalizeLines = (str: string): string =>
     .map(normalizeWhitespace)
     .filter(line => line.length > 0)
     .join('\n');
+
+/** Makes generated or catalog text safe to embed in a RegExp locator (COMMON RULE 14). */
+export const escapeRegExp = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
