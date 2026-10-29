@@ -173,7 +173,7 @@ Two are **Username with password**, one a **Secret file** and four **Secret text
 | `testmo-token`        | Secret text     | Testmo API key with write access for automation runs                                                                      |
 | `teams-webhook-url`   | Secret text     | Power Automate Workflows webhook URL for the target Teams channel                                                         |
 | `foundry-api-key`     | Secret text     | Key of the Foundry deployment; bound only when `FOUNDRY_ENDPOINT` is set                                                  |
-| `github-issues-token` | Secret text     | Fine-grained token, **Issues: read and write** on `GITHUB_REPO` only; bound only when `GITHUB_ISSUES` is `true`           |
+| `github-access-token` | Secret text     | GitHub token with **Issues: read and write** on `GITHUB_REPO`; bound only when `GITHUB_ISSUES` is `true`                  |
 
 `allure-creds` has one constraint: the Allure login body is a JSON document built
 with `printf` in the `post` block, so a password containing `"` or `\` produces
