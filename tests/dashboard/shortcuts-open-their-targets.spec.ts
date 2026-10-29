@@ -2,13 +2,18 @@
 // spec/clusters/backups-restores.md (TC-BAK-005)
 
 import { expect, test } from '@fixtures/auth';
+import { DASHBOARD_SHORTCUTS_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Dashboard', () => {
+  // stars-add-shortcuts-to-the-dashboard.spec.ts removes and restores these shortcuts, so both take its lock.
+  test.describe.configure({ timeout: DASHBOARD_SHORTCUTS_TEST_TIMEOUT });
+
   test('Each shortcut opens its target', async ({
     loggedInPage,
     dashboardPage,
     clustersPage,
     configurationPage,
+    keepDashboardShortcuts,
   }) => {
     // 1. Log in as the admin user.
 

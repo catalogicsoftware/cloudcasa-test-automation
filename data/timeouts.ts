@@ -62,6 +62,9 @@ export const NAVIGATION_TIMEOUT = 30_000;
 export const POST_LOGIN_LANDING_TEST_TIMEOUT =
   NAVIGATION_TIMEOUT * 3 + LOGIN_REDIRECT_TIMEOUT + 60_000;
 
+/** A route's lazy JS chunk loads only after the document `load` event, and on staging it regularly outlasts the 5s expect default. */
+export const LAZY_ROUTE_LOAD_TIMEOUT = 30_000;
+
 /** A Formly field can swap its widget when a neighbouring value changes — long enough for the re-render, short enough to fall through. */
 export const WIDGET_SWAP_TIMEOUT = 3_000;
 
@@ -70,6 +73,9 @@ export const HELP_MODAL_APPEAR_TIMEOUT = 15_000;
 
 /** The help modal can reappear after a full-page navigation but hasn't rendered yet right after goto() — long enough for it to show, short enough to fall through when it doesn't. */
 export const HELP_MODAL_REAPPEAR_TIMEOUT = 3_000;
+
+/** A tooltip opens on a hover that landed well within this; a longer wait means the hover missed and is retried. */
+export const TOOLTIP_OPEN_TIMEOUT = 2_000;
 
 /** A confirmation dialog closes only once its backend call answers, which outlasts the 5s expect default. */
 export const DIALOG_CLOSE_TIMEOUT = 30_000;
@@ -115,3 +121,6 @@ export const PASSWORD_RESET_FLOW_TEST_TIMEOUT =
  */
 export const PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT =
   PASSWORD_RESET_REUSE_TEST_TIMEOUT + EMAIL_TEST_TIMEOUT;
+
+/** Budget for a dashboard-shortcuts lock holder: a sign-in staging often repeats, the lock wait, and the page → dashboard → page round trip. */
+export const DASHBOARD_SHORTCUTS_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 150_000;
