@@ -16,6 +16,7 @@ import { CloudAccountsConfigurationPage } from '@page-object-model/pages/configu
 import { PoliciesConfigurationPage } from '@page-object-model/pages/configuration/policies-configuration.page';
 import { PricingPlansPage } from '@page-object-model/pages/configuration/pricing-plans.page';
 import { HooksConfigurationPage } from '@page-object-model/pages/configuration/hooks-configuration.page';
+import { PreferencesConfigurationPage } from '@page-object-model/pages/configuration/preferences-configuration.page';
 import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
@@ -39,6 +40,7 @@ type Pages = {
   policiesConfigurationPage: PoliciesConfigurationPage;
   pricingPlansPage: PricingPlansPage;
   hooksConfigurationPage: HooksConfigurationPage;
+  preferencesConfigurationPage: PreferencesConfigurationPage;
   toast: Toast;
   signUpPage: SignUpPage;
   adminUser: User;
@@ -47,6 +49,7 @@ type Pages = {
   ccApi: CcApi;
   resetPwdAccountLock: void;
   helpModalAccountLock: void;
+  organizationNameLock: void;
 };
 
 type WorkerFixtures = {
@@ -112,6 +115,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   hooksConfigurationPage: async ({ page }, use) => {
     await use(new HooksConfigurationPage(page));
   },
+  preferencesConfigurationPage: async ({ page }, use) => {
+    await use(new PreferencesConfigurationPage(page));
+  },
   toast: async ({ page }, use) => {
     await use(new Toast(page));
   },
@@ -162,6 +168,13 @@ export const test = base.extend<Pages, WorkerFixtures>({
   // that need it and the tests that break that state take turns; request it before loggedInPage.
   helpModalAccountLock: async ({}, use) => {
     const release = await acquireLock('help-modal-account');
+    await use();
+    release();
+  },
+
+  // The CI workers share one organization: the rename test takes turns with every test that reads its name.
+  organizationNameLock: async ({}, use) => {
+    const release = await acquireLock('organization-name');
     await use();
     release();
   },
