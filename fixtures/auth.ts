@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 import { LOGIN_REDIRECT_TIMEOUT } from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
+import { acquireLock } from '@utils/mailinator-lock';
 
 type AuthFixtures = {
   loggedInPage: Page;
@@ -15,6 +16,7 @@ type AuthFixtures = {
   createdPolicies: string[];
   resetHelpDialogPreference: void;
   createdClusters: string[];
+  keepDashboardShortcuts: void;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -164,6 +166,20 @@ export const test = base.extend<AuthFixtures>({
     }
     if (failures.length) {
       throw new Error(`Cluster teardown failed for ${failures.join('; ')}`);
+    }
+  },
+
+  // Workers share the account's shortcuts, so hold a lock and restore the starting set (order included) afterwards.
+  keepDashboardShortcuts: async ({ loggedInPage, usersApi, adminUser }, use) => {
+    const release = await acquireLock('dashboard-shortcuts');
+    try {
+      // The dashboard loaded before the lock was ours, so it may show another holder's shortcuts.
+      await loggedInPage.reload();
+      const shortcuts = await usersApi.getShortcuts(adminUser.email);
+      await use();
+      await usersApi.restoreShortcuts(adminUser.email, shortcuts);
+    } finally {
+      release();
     }
   },
 });

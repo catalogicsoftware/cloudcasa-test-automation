@@ -4,6 +4,8 @@ import { assertResponseOk } from '@utils/generic';
 import { BaseApi, apiHeaders } from './base.api';
 import type { CcUser, UsersListResponse } from '../../types/api/users';
 
+const SHORTCUTS_PREF_PREFIX = 'shortcuts_org_';
+
 // The /users resource rejects the static API key ("API Key access is not
 // allowed for this resource"), so this client authenticates with a Bearer JWT
 // captured from a logged-in admin browser session (see the adminJwt fixture).
@@ -59,7 +61,31 @@ export class UsersApi extends BaseApi {
     }
     const uiprefs = { ...user.uiprefs };
     delete uiprefs.helpdialog;
+    await this.putUiprefs(user, uiprefs);
+  }
 
+  /** Every `uiprefs.shortcuts_org_<organization id>` key (a JSON-encoded list of shortcut ids), as is. */
+  async getShortcuts(email: string): Promise<Record<string, unknown>> {
+    const user = await this.findByEmail(email);
+    return Object.fromEntries(
+      Object.entries(user?.uiprefs ?? {}).filter(([key]) => key.startsWith(SHORTCUTS_PREF_PREFIX)),
+    );
+  }
+
+  /** Puts back the shortcuts read by getShortcuts() — order included — and drops any added since. */
+  async restoreShortcuts(email: string, shortcuts: Record<string, unknown>): Promise<void> {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      throw new Error(`User ${email} not found`);
+    }
+    const uiprefs = Object.fromEntries(
+      Object.entries(user.uiprefs ?? {}).filter(([key]) => !key.startsWith(SHORTCUTS_PREF_PREFIX)),
+    );
+    await this.putUiprefs(user, { ...uiprefs, ...shortcuts });
+  }
+
+  // The SPA sends this exact body for a uiprefs change; the PUT replaces the whole user document.
+  private async putUiprefs(user: CcUser, uiprefs: Record<string, unknown>): Promise<void> {
     const response = await this.request.put(this.url(`${CcApiRoutes.USERS}/${user._id}`), {
       headers: { ...this.headers, 'If-Match': user._etag },
       data: {
