@@ -50,7 +50,10 @@ test.describe('App hooks', () => {
     await toast.shouldShowSuccess(new RegExp(`Updated hook: ${original.name}`));
     await drawer.shouldBeClosed();
 
-    // Reload the page and make sure that the table shows the new values
+    // Make sure that the table shows the new values before reloading the page
+    await hooksConfigurationPage.shouldListHook(updated);
+
+    // Reload the page and make sure that the new values stay
     await loggedInPage.reload({ waitUntil: 'load' });
     await hooksConfigurationPage.shouldListHook(updated);
 
