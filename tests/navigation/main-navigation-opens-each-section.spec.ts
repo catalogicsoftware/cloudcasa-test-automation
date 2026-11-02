@@ -1,6 +1,7 @@
 // spec: specs/navigation/navigation.md (TC-NAV-001, TC-CL-001)
 
 import { expect, test } from '@fixtures/auth';
+import { CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 import { Link } from '@page-factory/link';
 import { ClusterSection } from '@page-object-model/components/clusters-sidebar.components';
 
@@ -14,7 +15,10 @@ const CLUSTER_SUB_SECTIONS: ClusterSection[] = [
 ];
 
 test.describe('Global Navigation & User Menu', () => {
+  test.describe.configure({ timeout: CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT });
+
   test('The main navigation opens each section', async ({
+    cloudAccountsLock,
     loggedInPage,
     dashboardPage,
     clustersPage,

@@ -1,6 +1,10 @@
 import { test as base } from './base';
 import { Page } from '@playwright/test';
-import { LOGIN_REDIRECT_TIMEOUT, ORGANIZATION_NAME_RESTORE_TIMEOUT } from '@data/timeouts';
+import {
+  CLOUD_ACCOUNTS_RESTORE_TIMEOUT,
+  LOGIN_REDIRECT_TIMEOUT,
+  ORGANIZATION_NAME_RESTORE_TIMEOUT,
+} from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
@@ -18,6 +22,7 @@ type AuthFixtures = {
   createdHooks: string[];
   originalOrganizationName: string;
   originalYamlCatalogForBrowse: boolean;
+  cloudAccountsEnabled: void;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -186,6 +191,15 @@ export const test = base.extend<AuthFixtures>({
       await ccApi.orgs.setYamlCatalogForBrowse(originalValue);
     },
     { timeout: ORGANIZATION_NAME_RESTORE_TIMEOUT },
+  ],
+  // Self-healing like cleanRegisteredUserState; the organization-name lock too, since the Settings save and this PUT rewrite display_name.
+  cloudAccountsEnabled: [
+    async ({ organizationNameLock, cloudAccountsLock, ccApi }, use) => {
+      await ccApi.orgs.enableCloudAccounts();
+      await use();
+      await ccApi.orgs.enableCloudAccounts();
+    },
+    { timeout: CLOUD_ACCOUNTS_RESTORE_TIMEOUT },
   ],
   createdClusters: async ({ ccApi }, use) => {
     const names: string[] = [];

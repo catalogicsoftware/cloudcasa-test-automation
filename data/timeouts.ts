@@ -150,3 +150,17 @@ export const ORGANIZATION_NAME_CHECK_TEST_TIMEOUT =
 /** Test budget for the user-menu journey when it waits its turn for the organization-name lock behind the rename. */
 export const LEGAL_DOCUMENTS_LOCKED_TEST_TIMEOUT =
   LEGAL_DOCUMENTS_TEST_TIMEOUT + ORGANIZATION_RENAME_JOURNEY;
+
+/** The cloud-accounts flag read and its removal (GET + PUT) run in their own slot, so a timed-out toggle still turns them back on. */
+export const CLOUD_ACCOUNTS_RESTORE_TIMEOUT = RUNNER_REQUEST_TIMEOUT * 2;
+
+/** The toggle journey: a sign-in that staging regularly makes twice, two saves and a reload, plus the flag removal before and after. */
+const CLOUD_ACCOUNTS_TOGGLE_JOURNEY =
+  LOGIN_REDIRECT_TIMEOUT * 2 + 60_000 + CLOUD_ACCOUNTS_RESTORE_TIMEOUT * 2;
+
+/** Test budget for the toggle when it waits its turn for the organization-name and cloud-accounts locks behind a rename or another toggle. */
+export const CLOUD_ACCOUNTS_TOGGLE_TEST_TIMEOUT = CLOUD_ACCOUNTS_TOGGLE_JOURNEY * 2;
+
+/** Test budget for a test that needs cloud accounts on when it waits its turn for the cloud-accounts lock behind the toggle. */
+export const CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT =
+  LOGIN_REDIRECT_TIMEOUT * 2 + 30_000 + CLOUD_ACCOUNTS_TOGGLE_JOURNEY;

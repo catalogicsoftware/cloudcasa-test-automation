@@ -4,6 +4,7 @@ export type Org = {
   name: string; // internal, never shown in the UI
   display_name: string;
   enable_yaml_catalog_for_browse: boolean;
+  uiprefs: Record<string, string>;
 };
 
 export type OrgsListResponse = {

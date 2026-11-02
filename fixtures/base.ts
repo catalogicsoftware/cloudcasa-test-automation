@@ -50,6 +50,7 @@ type Pages = {
   resetPwdAccountLock: void;
   helpModalAccountLock: void;
   organizationNameLock: void;
+  cloudAccountsLock: void;
 };
 
 type WorkerFixtures = {
@@ -175,6 +176,13 @@ export const test = base.extend<Pages, WorkerFixtures>({
   // The CI workers share one organization: the rename test takes turns with every test that reads its name.
   organizationNameLock: async ({}, use) => {
     const release = await acquireLock('organization-name');
+    await use();
+    release();
+  },
+
+  // Turning cloud accounts off hides them for the whole shared organization; request it before loggedInPage.
+  cloudAccountsLock: async ({}, use) => {
+    const release = await acquireLock('cloud-accounts');
     await use();
     release();
   },

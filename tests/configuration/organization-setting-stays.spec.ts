@@ -13,7 +13,7 @@ test.describe('Configuration', () => {
     preferencesConfigurationPage,
     toast,
   }) => {
-    const { organizationName, yamlCatalogForBrowse, save } = preferencesConfigurationPage;
+    const { organizationName, yamlCatalogForBrowse } = preferencesConfigurationPage;
     const { configurationSideBar } = configurationPage;
 
     // 1. Log in as the admin user and open /configuration/preferences.
@@ -37,7 +37,7 @@ test.describe('Configuration', () => {
     await expect(yamlCatalogForBrowse.getLocator()).toBeChecked({ checked: newValue });
 
     // 5. Save the form.
-    await save.click();
+    await preferencesConfigurationPage.save();
 
     // 6. Make sure that a success toast appears.
     await toast.shouldShowSuccess(/Updated preferences/);
@@ -61,7 +61,7 @@ test.describe('Configuration', () => {
 
     // 11. Set the value of the step 3 back and save.
     await yamlCatalogForBrowse.click();
-    await save.click();
+    await preferencesConfigurationPage.save();
     await toast.shouldShowSuccess(/Updated preferences/);
 
     // 12. Make sure that the first value is in the form again.

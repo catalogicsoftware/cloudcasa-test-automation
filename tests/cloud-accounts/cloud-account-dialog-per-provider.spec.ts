@@ -1,10 +1,14 @@
 // spec: spec/configuration/cloud-accounts-misc.md (TC-CA-001, TC-CA-002)
 
 import { test } from '@fixtures/auth';
+import { CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 import { CLOUD_PROVIDERS } from '@data/cloud-accounts';
 
 test.describe('Cloud Accounts', () => {
+  test.describe.configure({ timeout: CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT });
+
   test('The cloud account dialog asks for the fields of each provider', async ({
+    cloudAccountsLock,
     loggedInPage,
     dashboardPage,
     cloudAccountsConfigurationPage,
