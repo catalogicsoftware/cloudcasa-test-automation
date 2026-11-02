@@ -24,13 +24,13 @@ Every `TC-*` heading in a plan ends with its status: `## TC-XXX-001 — title �
 | 🟨 | Partial | Some steps covered; the `**Test:**` line names what is covered and what is not. |
 | ⬜ | To automate | No test yet. A `[needs …]` marker in the title means infrastructure is required first. |
 
-**Coverage: 33 of 83 cases touched** — 26 ✅, 7 🟨, 50 ⬜.
+**Coverage: 34 of 83 cases touched** — 27 ✅, 7 🟨, 49 ⬜.
 (83 = every `TC-*` heading; TC-AUTH-001/002 are cross-references to TC-NAV-002/003, so 81 are distinct.)
-Written test files: 35. Twelve of them cover login / password reset / sign-up cases tracked as a flat list
+Written test files: 36. Twelve of them cover login / password reset / sign-up cases tracked as a flat list
 in [auth/auth.md](auth/auth.md#already-automated-) instead of `TC-*` IDs; the rest are TC-AUTH-004,
 TC-USR-002, TC-USR-005, TC-NAV-003, TC-NAV-005, TC-DASH-003, TC-AUTH-007/003 (one file), the five
 storage tests carrying TC-STG-001/002/003/004/007/009/011, TC-CL-002/003/005/007 (one file),
-TC-CA-001/002 (one file), TC-SET-001, TC-SET-003, and TC-SET-002 (partial — split in two files; the Configuration-menu check is `test.fixme()` for an open defect).
+TC-CA-001/002 (one file), TC-SET-001, TC-SET-003, TC-KEY-001, and TC-SET-002 (partial — split in two files; the Configuration-menu check is `test.fixme()` for an open defect).
 
 ## Customer-driven priorities (from support tickets)
 
@@ -63,7 +63,7 @@ TC-CA-001/002 (one file), TC-SET-001, TC-SET-003, and TC-SET-002 (partial — sp
 | [clusters/clusters.md](clusters/clusters.md) | Clusters list, Add Cluster dialog, install manifest | 8 | ✅ 5/8 | — |
 | [clusters/backups-restores.md](clusters/backups-restores.md) | Backup wizard, restores, recovery points | 8 | ✅ 1/8 | TC-BAK-001, TC-BAK-002†, TC-BAK-003†, TC-RST-001† |
 | [configuration/policies.md](configuration/policies.md) | Policy CRUD | 6 | ✅ 6/6 | ~~TC-POL-001~~ ✅ |
-| [configuration/user-management.md](configuration/user-management.md) | Users, invitations, roles, API keys, alerts, org scoping | 11 | ✅ 1/11, 🟨 1 | ~~TC-USR-002~~ ✅, TC-USR-005 🟨, TC-USR-006 |
+| [configuration/user-management.md](configuration/user-management.md) | Users, invitations, roles, API keys, alerts, org scoping | 11 | ✅ 2/11, 🟨 1 | ~~TC-USR-002~~ ✅, TC-USR-005 🟨, TC-USR-006 |
 | [configuration/cloud-accounts-misc.md](configuration/cloud-accounts-misc.md) | Cloud accounts, audit logs, settings, hooks | 9 | ✅ 4/9, 🟨 2 | — |
 | [account/trial-billing-support.md](account/trial-billing-support.md) | **Expired trial, support form, billing (top customer UI flows)** | 3 | ✅ 1/3 | TC-TRIAL-001, TC-SUP-001 |
 | [reports/reports.md](reports/reports.md) | Reports, Databases & DR smoke | 4 | ⬜ 0/4 | — |
