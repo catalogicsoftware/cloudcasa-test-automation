@@ -5,6 +5,7 @@ export enum CcApiRoutes {
   KUBECLUSTERS = 'api/v1/kubeclusters',
   KUBEHOOKS = 'api/v1/kubehooks',
   OBJECT_STORES = 'api/v1/objectstores',
+  ORGS = 'api/v1/orgs',
   POLICIES = 'api/v1/policies',
   USERS = 'api/v1/users',
 }

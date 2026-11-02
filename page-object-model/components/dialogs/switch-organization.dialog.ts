@@ -18,7 +18,7 @@ export class SwitchOrganizationDialog {
   }
 
   /** Each organization is a radio option labelled with its name; the label carries the accessible name. */
-  organizationOption(organizationName: string): Locator {
+  organizationOption(organizationName: string | RegExp): Locator {
     return this.dialog.getLocator().getByLabel(organizationName, { exact: true });
   }
 

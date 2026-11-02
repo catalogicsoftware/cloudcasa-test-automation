@@ -4,10 +4,24 @@ import { Container } from '@page-factory/container';
 import { Link } from '@page-factory/link';
 import { Button } from '@page-factory/button';
 import { Table } from '@page-factory/table';
+import { Title } from '@page-factory/title';
+import { ChangeOrganizationNameDialog } from '@page-object-model/components/dialogs/change-organization-name.dialog';
 import { InviteUserDrawer } from '@page-object-model/components/drawers/user-invitation-drawer.components';
 
 export class UsersConfigurationPage extends BasePage {
   readonly usersContainer = new Container({ page: this.page, locator: 'app-users', name: 'Users' });
+  // The "Name:" line has no unique selector: its value and edit icon sit in the button next to the label.
+  readonly editOrganizationName = new Button({
+    page: this.page,
+    locator: 'app-users div:has(> p:text-is("Name:")) > button',
+    name: 'Edit organization name',
+  });
+  readonly organizationName = new Title({
+    page: this.page,
+    locator: 'app-users div:has(> p:text-is("Name:")) > button b',
+    name: 'Organization name',
+  });
+  readonly changeOrganizationNameDialog = new ChangeOrganizationNameDialog(this.page);
   readonly inviteUser = new Button({
     page: this.page,
     locator: 'button:has-text("Invite user")',

@@ -1,11 +1,15 @@
 import { test } from '@fixtures/base';
+import { ORGANIZATION_NAME_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 
 test.beforeEach(async ({ loginPage }) => {
   await loginPage.goto();
 });
 
 test.describe('Organization verification', () => {
+  test.describe.configure({ timeout: ORGANIZATION_NAME_CHECK_TEST_TIMEOUT });
+
   test('After Sign-In user should see the organizaiotn he has registred', async ({
+    organizationNameLock,
     loginPage,
     dashboardPage,
     adminUser: user,

@@ -1,6 +1,6 @@
 import { test as base } from './base';
 import { Page } from '@playwright/test';
-import { LOGIN_REDIRECT_TIMEOUT } from '@data/timeouts';
+import { LOGIN_REDIRECT_TIMEOUT, ORGANIZATION_NAME_RESTORE_TIMEOUT } from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
@@ -16,6 +16,7 @@ type AuthFixtures = {
   resetHelpDialogPreference: void;
   createdClusters: string[];
   createdHooks: string[];
+  originalOrganizationName: string;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -167,6 +168,15 @@ export const test = base.extend<AuthFixtures>({
       throw new Error(`Hook teardown failed for ${failures.join('; ')}`);
     }
   },
+  // A teardown with its own timeout, not a finally block in the test, so a timed-out rename is still set back.
+  originalOrganizationName: [
+    async ({ organizationNameLock, ccApi }, use) => {
+      const { display_name: originalName } = await ccApi.orgs.current();
+      await use(originalName);
+      await ccApi.orgs.setDisplayName(originalName);
+    },
+    { timeout: ORGANIZATION_NAME_RESTORE_TIMEOUT },
+  ],
   createdClusters: async ({ ccApi }, use) => {
     const names: string[] = [];
     await use(names);

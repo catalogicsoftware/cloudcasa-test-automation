@@ -42,8 +42,12 @@ export default tseslint.config(
   },
   {
     // Playwright fixtures declare dependencies as `async ({}, use)` when they need none.
+    // A fixture can depend on another one (a lock) for its setup/teardown only, not its value.
     files: ['fixtures/**/*.ts'],
-    rules: { 'no-empty-pattern': 'off' },
+    rules: {
+      'no-empty-pattern': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
+    },
   },
   {
     // Playwright rules where tests live; POM and utils are covered by the type-aware rules above.

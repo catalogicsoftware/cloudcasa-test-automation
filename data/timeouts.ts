@@ -124,3 +124,21 @@ export const PASSWORD_RESET_FLOW_TEST_TIMEOUT =
  */
 export const PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT =
   PASSWORD_RESET_REUSE_TEST_TIMEOUT + EMAIL_TEST_TIMEOUT;
+
+/** The organization name read and its restore (GET, then GET + PATCH) run in their own slot, so a timed-out rename is still set back. */
+export const ORGANIZATION_NAME_RESTORE_TIMEOUT = RUNNER_REQUEST_TIMEOUT * 2;
+
+/** The rename journey: a sign-in that staging regularly makes twice, three pages and a reload, plus the name read and restore. */
+const ORGANIZATION_RENAME_JOURNEY =
+  LOGIN_REDIRECT_TIMEOUT * 2 + 60_000 + ORGANIZATION_NAME_RESTORE_TIMEOUT * 2;
+
+/** Test budget for the rename when it waits its turn for the organization-name lock (fixtures/base.ts) behind another rename. */
+export const ORGANIZATION_RENAME_TEST_TIMEOUT = ORGANIZATION_RENAME_JOURNEY * 2;
+
+/** Test budget for a check of the organization name when it waits its turn for the organization-name lock behind the rename. */
+export const ORGANIZATION_NAME_CHECK_TEST_TIMEOUT =
+  LOGIN_REDIRECT_TIMEOUT * 2 + 30_000 + ORGANIZATION_RENAME_JOURNEY;
+
+/** Test budget for the user-menu journey when it waits its turn for the organization-name lock behind the rename. */
+export const LEGAL_DOCUMENTS_LOCKED_TEST_TIMEOUT =
+  LEGAL_DOCUMENTS_TEST_TIMEOUT + ORGANIZATION_RENAME_JOURNEY;
