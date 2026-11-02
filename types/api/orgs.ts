@@ -3,6 +3,7 @@ export type Org = {
   _etag: string;
   name: string; // internal, never shown in the UI
   display_name: string;
+  enable_yaml_catalog_for_browse: boolean;
 };
 
 export type OrgsListResponse = {

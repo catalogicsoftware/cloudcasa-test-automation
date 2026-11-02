@@ -16,10 +16,18 @@ export class OrgsApi extends BaseApi {
   }
 
   async setDisplayName(displayName: string): Promise<void> {
+    await this.patch({ display_name: displayName });
+  }
+
+  async setYamlCatalogForBrowse(enabled: boolean): Promise<void> {
+    await this.patch({ enable_yaml_catalog_for_browse: enabled });
+  }
+
+  private async patch(data: Partial<Org>): Promise<void> {
     const org = await this.current();
     const response = await this.request.patch(this.url(`${CcApiRoutes.ORGS}/${org._id}`), {
       headers: { ...this.headers, 'If-Match': org._etag },
-      data: { display_name: displayName },
+      data,
     });
     await assertResponseOk(response, `PATCH orgs/${org._id}`);
   }
