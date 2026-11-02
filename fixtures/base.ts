@@ -18,6 +18,7 @@ import { PricingPlansPage } from '@page-object-model/pages/configuration/pricing
 import { HooksConfigurationPage } from '@page-object-model/pages/configuration/hooks-configuration.page';
 import { PreferencesConfigurationPage } from '@page-object-model/pages/configuration/preferences-configuration.page';
 import { Toast } from '@page-object-model/components/toast.components';
+import { ShortcutStar } from '@page-object-model/components/shortcut-star.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
@@ -42,6 +43,8 @@ type Pages = {
   hooksConfigurationPage: HooksConfigurationPage;
   preferencesConfigurationPage: PreferencesConfigurationPage;
   toast: Toast;
+  pageStar: ShortcutStar;
+  drawerStar: ShortcutStar;
   signUpPage: SignUpPage;
   adminUser: User;
   invitedUser: InvitedUser;
@@ -120,6 +123,12 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   toast: async ({ page }, use) => {
     await use(new Toast(page));
+  },
+  pageStar: async ({ page }, use) => {
+    await use(new ShortcutStar(page, 'page'));
+  },
+  drawerStar: async ({ page }, use) => {
+    await use(new ShortcutStar(page, 'drawer'));
   },
 
   // CloudCasa REST API client authenticated with the static CLOUDCASA_API_TOKEN.

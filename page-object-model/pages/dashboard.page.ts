@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from '@playwright/test';
 import { BasePage } from './base.page';
 import { Container } from 'page-factory/container';
+import { Button } from '@page-factory/button';
 import { Link } from '@page-factory/link';
 import { Table } from '@page-factory/table';
 import { UserMenu } from '@page-object-model/components/user-menu.components';
@@ -8,7 +9,16 @@ import { UserHelpModal } from '@page-object-model/components/user-help-modal.com
 import { TopNav } from '@page-object-model/components/top-nav.components';
 import { SwitchOrganizationDialog } from '@page-object-model/components/dialogs/switch-organization.dialog';
 import { JobsTimeRangeSelector } from '@page-object-model/components/jobs-time-range-selector.components';
+import { ManageShortcutsDialog } from '@page-object-model/components/dialogs/manage-shortcuts.dialog';
 import { CcApiRoutes } from 'data/api-routes';
+import { escapeRegExp } from '@utils/generic';
+import type { ShortcutKind } from '../../types/data/shortcut';
+
+/** A page tile renders the compass icon (`shortcut-view`), a drawer tile the "+" icon (`shortcut-add`). */
+const SHORTCUT_TILE_CLASS: Record<ShortcutKind, string> = {
+  page: 'shortcut-view',
+  drawer: 'shortcut-add',
+};
 
 export class DashboardPage extends BasePage {
   readonly dashboardContainer = new Container({
@@ -118,6 +128,12 @@ export class DashboardPage extends BasePage {
     locator: 'app-shortcuts a[href="/clusters/backups?new=true"]',
     name: 'Define cluster backup',
   });
+  readonly editShortcutsButton = new Button({
+    page: this.page,
+    locator: 'app-shortcuts h4 + button',
+    name: 'Edit shortcuts',
+  });
+  readonly manageShortcutsDialog = new ManageShortcutsDialog(this.page);
   readonly alertsPanel = new Container({ page: this.page, locator: 'app-alerts', name: 'Alerts' });
 
   constructor(page: Page) {
@@ -180,5 +196,39 @@ export class DashboardPage extends BasePage {
   /** Databases counter in the cloud providers card, e.g. "Accounts", "Protected DBs". */
   databasesCounter(label: string): Locator {
     return this.statBlock(this.cloudProvidersCard.getLocator(), label).locator('.icon-value');
+  }
+
+  /** Matched on the whole tile text, anchored, so "Users" never matches "Users groups"; `kind` narrows it by icon. */
+  shortcutTile(section: string, name: string, kind?: ShortcutKind): Locator {
+    const tile = kind ? `a.btn-shortcut.${SHORTCUT_TILE_CLASS[kind]}` : 'a.btn-shortcut';
+    return this.shortcutsPanel
+      .getLocator()
+      .locator(tile)
+      .filter({
+        hasText: new RegExp(`^\\s*${escapeRegExp(section)}\\s+${escapeRegExp(name)}\\s*$`),
+      });
+  }
+
+  /** Waits for the tile's own navigation, since the app may move on from that URL right away (a drawer drops ?new=true). */
+  async openShortcut(section: string, name: string, navigatesTo: RegExp): Promise<void> {
+    await test.step(`Click the shortcut "${section} / ${name}"`, async () => {
+      await Promise.all([
+        this.page.waitForURL(navigatesTo, { waitUntil: 'commit' }),
+        this.shortcutTile(section, name).click(),
+      ]);
+    });
+  }
+
+  /** Precondition helper: the tile is removed through the pencil modal only if the dashboard holds it. */
+  async removeShortcutIfPresent(section: string, name: string): Promise<void> {
+    await test.step(`Remove the shortcut "${section} / ${name}" if the dashboard holds it`, async () => {
+      // The pencil and the tiles render together, once the account's shortcuts are loaded.
+      await this.editShortcutsButton.getLocator().waitFor();
+      if ((await this.shortcutTile(section, name).count()) === 0) {
+        return;
+      }
+      await this.editShortcutsButton.click();
+      await this.manageShortcutsDialog.removeShortcut(section, name);
+    });
   }
 }
