@@ -86,6 +86,9 @@ export const DIALOG_CLOSE_TIMEOUT = 30_000;
 /** Test budget for a flow that saves a storage: the probe plus the UI around it. */
 export const STORAGE_TEST_TIMEOUT = BACKEND_PROBE_TIMEOUT + 90_000;
 
+/** Test budget for the default-storage journey: a storage seed with its probe plus the UI, after the worst-case wait for the bucket lock. */
+export const DEFAULT_STORAGE_TEST_TIMEOUT = STORAGE_TEST_TIMEOUT * 2;
+
 /**
  * Test budget for a flow that resets the same account's password twice by e-mail (once to
  * change it, once to restore it): two full email round-trips plus the extra logins and

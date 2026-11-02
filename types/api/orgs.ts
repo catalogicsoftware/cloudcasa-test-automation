@@ -5,6 +5,7 @@ export type Org = {
   display_name: string;
   enable_yaml_catalog_for_browse: boolean;
   uiprefs: Record<string, string>;
+  backup_provider?: { user_objectstore?: string };
 };
 
 export type OrgsListResponse = {

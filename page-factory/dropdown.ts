@@ -4,8 +4,8 @@ import { Component } from './component';
 
 type SelectProps = { validateValue?: boolean } & LocatorProps;
 type SelectByTextProps = {
-  /** Filter the options via the menu's search field before clicking. Useful for long, paginated lists. */
-  search?: boolean;
+  /** Filter the options via the menu's search field before clicking; a RegExp option needs the text to type here. */
+  search?: boolean | string;
   /** Override the option selector when the widget differs from app-input-select-filter. */
   optionLocator?: string;
   /** The menu is multi-select and stays open after a click; pass true to keep it open for further selections. */
@@ -42,7 +42,10 @@ export class Dropdown extends Component {
    * close the menu by itself and Escape is not handled — only the footer
    * "close" button (or backdrop click) dismisses it.
    */
-  async selectByText(optionText: string, selectProps: SelectByTextProps = {}): Promise<void> {
+  async selectByText(
+    optionText: string | RegExp,
+    selectProps: SelectByTextProps = {},
+  ): Promise<void> {
     const { search, optionLocator, keepOpen, ...locatorProps } = selectProps;
 
     await test.step(`Select option "${optionText}" in ${this.typeOf} "${this.componentName}"`, async () => {
@@ -50,7 +53,9 @@ export class Dropdown extends Component {
       await this.menu.waitFor({ state: 'visible' });
 
       if (search) {
-        await this.menu.locator('input[name="searchField"]').fill(optionText);
+        await this.menu
+          .locator('input[name="searchField"]')
+          .fill(typeof search === 'string' ? search : String(optionText));
       }
 
       await this.option(optionText, optionLocator).click();
@@ -62,9 +67,13 @@ export class Dropdown extends Component {
   }
 
   /** Matched on the option's own label, exactly: Azure offers "East US", "East US 2" and "East US 2 EUAP" (see README.md). */
-  private option(optionText: string, optionLocator?: string): Locator {
+  private option(optionText: string | RegExp, optionLocator?: string): Locator {
     if (optionLocator) {
       return this.page.locator(optionLocator, { hasText: optionText });
+    }
+
+    if (optionText instanceof RegExp) {
+      return this.menu.locator('button.mat-menu-item', { hasText: optionText });
     }
 
     const exact = JSON.stringify(optionText);
