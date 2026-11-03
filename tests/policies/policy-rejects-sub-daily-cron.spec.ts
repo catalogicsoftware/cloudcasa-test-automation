@@ -6,6 +6,7 @@ import { testResourceName } from '@utils/resource-names';
 const RETENTION_DAYS = 7;
 
 test.describe('Policies', () => {
+  test.skip(true, 'Temporarily disabled until a dedicated Free-plan account is available.');
   test.describe.configure({ timeout: POLICY_TEST_TIMEOUT });
 
   test('Create a policy rejects a cron more frequent than daily on a free account', async ({

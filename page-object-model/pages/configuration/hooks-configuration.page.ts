@@ -116,12 +116,21 @@ export class HooksConfigurationPage extends BasePage {
   async shouldListHook(hook: HookCase): Promise<void> {
     await test.step(`App hook "${hook.name}" should be listed with its type and ${hook.apps.length} app(s)`, async () => {
       await this.hooksTable.shouldHaveRow(hook.name, HOOK_LIST_RELOAD_TIMEOUT);
-      await this.hooksTable.shouldHaveCellValue(hook.name, 'Type', HOOK_TYPE_LABELS[hook.type]);
+      await this.hooksTable.shouldHaveCellValue(
+        hook.name,
+        'Type',
+        HOOK_TYPE_LABELS[hook.type],
+        HOOK_LIST_RELOAD_TIMEOUT,
+      );
       const appLines = this.hooksTable.getRow(hook.name).locator('td div:has(> .badge)');
-      await expect(appLines).toHaveCount(hook.apps.length);
+      await expect(appLines).toHaveCount(hook.apps.length, { timeout: HOOK_LIST_RELOAD_TIMEOUT });
       for (const [index, app] of hook.apps.entries()) {
-        await expect(appLines.nth(index)).toContainText(podSelectorInTable(app.podSelector));
-        await expect(appLines.nth(index)).toContainText(app.container || DEFAULT_CONTAINER_LABEL);
+        await expect(appLines.nth(index)).toContainText(podSelectorInTable(app.podSelector), {
+          timeout: HOOK_LIST_RELOAD_TIMEOUT,
+        });
+        await expect(appLines.nth(index)).toContainText(app.container || DEFAULT_CONTAINER_LABEL, {
+          timeout: HOOK_LIST_RELOAD_TIMEOUT,
+        });
       }
     });
   }

@@ -76,12 +76,13 @@ export class Table extends Component {
     rowText: string | RegExp,
     columnTitle: string,
     expected: string | RegExp,
+    timeout?: number,
   ): Promise<void> {
     await test.step(`Cell "${columnTitle}" in row "${rowText}" of ${this.typeOf} "${this.componentName}" should have value "${expected}"`, async () => {
       const cell = await this.getCell(rowText, columnTitle);
       await expect(cell, {
         message: `The ${this.typeOf} with name "${this.componentName}" and locator "${this.locator}" does not have value "${expected}" in cell "${columnTitle}" of row "${rowText}"`,
-      }).toContainText(expected);
+      }).toContainText(expected, { timeout });
     });
   }
 

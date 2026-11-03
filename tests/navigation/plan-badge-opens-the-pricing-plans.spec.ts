@@ -3,6 +3,8 @@
 import { expect, test } from '@fixtures/auth';
 
 test.describe('Global Navigation & User Menu', () => {
+  test.skip(true, 'Temporarily disabled until a dedicated Free-plan account is available.');
+
   test('The plan badge opens the pricing plans', async ({
     loggedInPage,
     dashboardPage,

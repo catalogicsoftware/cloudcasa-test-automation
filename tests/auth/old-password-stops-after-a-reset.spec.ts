@@ -41,6 +41,7 @@ test.describe('Authentication', () => {
     resetPasswordPage,
     dashboardPage,
     mailboxAccess,
+    resetPwdAccountLock,
   }) => {
     // 1. Read the current password of the reset account from the environment.
     const oldPassword = process.env.RESET_PWD_PASSWORD;
@@ -49,7 +50,7 @@ test.describe('Authentication', () => {
     }
 
     // 2. Make a new password with the helper in @data/fake.
-    const newPassword = fakeUser().password;
+    const newPassword = `${fakeUser().password}aB1!`;
 
     // Tracks whether step 8 leaves the browser on an authenticated session, so the cleanup
     // can log out first — a session left active would make loginPage.goto() bounce straight

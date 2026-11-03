@@ -6,6 +6,7 @@ import { testResourceName } from '@utils/resource-names';
 import { INSTALL_COMMAND_PATTERN } from '@page-object-model/components/dialogs/install-agent.dialog';
 
 test.describe('Clusters', () => {
+  test.skip(true, 'Temporarily disabled until a dedicated Free-plan account is available.');
   test.describe.configure({ timeout: LOCKED_CLUSTER_TEST_TIMEOUT });
 
   test('The user registers a cluster and removes it', async ({

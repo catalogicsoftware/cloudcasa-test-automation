@@ -2,7 +2,7 @@
 // seed: seed.spec.ts
 
 import { faker } from '@faker-js/faker';
-import { test } from '@fixtures/base';
+import { test } from '@fixtures/auth';
 import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { PASSWORD_RESET_FLOW_TEST_TIMEOUT } from '@data/timeouts';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
@@ -17,7 +17,7 @@ test.describe('Forgot Password Flow', () => {
     resetPasswordPage,
     dashboardPage,
     mailboxAccess,
-    resetPwdAccountLock,
+    restoreResetPassword,
   }) => {
     const newPassword = `${faker.internet.password({ length: 16, memorable: false })}1!Aa`;
 

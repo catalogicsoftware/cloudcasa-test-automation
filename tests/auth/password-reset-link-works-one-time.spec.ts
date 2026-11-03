@@ -12,12 +12,6 @@ import { PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT } from '@data/timeouts';
 
 const RESET_PWD_EMAIL = mailboxAddress(MailinatorInbox.RESET_PWD);
 
-// The account has no login of its own anywhere else in this suite -- only the mail-driven
-// reset flow ever touches it -- so a test cannot read back whatever password it already
-// holds. This is the value every test that changes it converges back on afterwards (see
-// .env.example), keeping the account reusable instead of drifting to a random leftover value.
-const BASELINE_PASSWORD = process.env.RESET_PWD_PASSWORD;
-
 test.describe('Authentication', () => {
   test.describe.configure({ timeout: PASSWORD_RESET_REUSE_LOCKED_TEST_TIMEOUT });
 
@@ -26,15 +20,9 @@ test.describe('Authentication', () => {
     resetPasswordPage,
     browser,
     mailboxAccess,
-    resetPwdAccountLock,
+    restoreResetPassword,
+    baseURL,
   }) => {
-    if (!BASELINE_PASSWORD) {
-      throw new Error(
-        'RESET_PWD_PASSWORD must be set -- see .env.example. This test restores the reset ' +
-          'account to that password once it is done.',
-      );
-    }
-
     const newPassword = `${faker.internet.password({ length: 16, memorable: false })}1!Aa`;
 
     // 1. Ask for a password reset for the account.
@@ -56,7 +44,7 @@ test.describe('Authentication', () => {
     await resetPasswordPage.successMessage.shouldBeVisible();
 
     // 5. Open the same link a second time in a clean context.
-    const reusedLinkContext = await browser.newContext();
+    const reusedLinkContext = await browser.newContext({ baseURL });
     const reusedLinkPage = await reusedLinkContext.newPage();
     const reusedResetPasswordPage = new ResetPasswordPage(reusedLinkPage);
     await reusedResetPasswordPage.openWithoutWaitingForForm(resetLink);
@@ -85,17 +73,6 @@ test.describe('Authentication', () => {
 
     await reusedLinkContext.close();
 
-    // Cleanup: 11. Set the password back to the first value.
-    await loginPage.goto();
-    await loginPage.clickForgotPassword();
-    await loginPage.emailInput.fill(RESET_PWD_EMAIL);
-    const cleanupRequestedAt = await resetInbox(RESET_PWD_EMAIL);
-    await loginPage.signInButton.click();
-    await loginPage.resetSuccessMessage.shouldBeVisible();
-
-    const cleanupResetLink = await getPasswordResetLink(cleanupRequestedAt);
-    await resetPasswordPage.openResetLink(cleanupResetLink);
-    await resetPasswordPage.setNewPassword(BASELINE_PASSWORD);
-    await resetPasswordPage.successMessage.shouldBeVisible();
+    // The restoreResetPassword fixture restores the baseline even when a preceding step fails.
   });
 });
