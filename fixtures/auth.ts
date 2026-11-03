@@ -1,11 +1,9 @@
 import { test as base } from './base';
-import { Page } from '@playwright/test';
+import { BrowserContext, Page } from '@playwright/test';
 import { LoginPage } from '@page-object-model/pages/auth/login.page';
-import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.page';
-import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
+import { CcApiRoutes } from '@data/api-routes';
 import {
   CLOUD_ACCOUNTS_RESTORE_TIMEOUT,
-  EMAIL_TEST_TIMEOUT,
   LOGIN_REDIRECT_TIMEOUT,
   ORGANIZATION_NAME_RESTORE_TIMEOUT,
 } from '@data/timeouts';
@@ -13,7 +11,6 @@ import { UsersApi } from '@utils/api/users.api';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 type AuthFixtures = {
-  restoreResetPassword: string;
   loggedInPage: Page;
   cancelInvitationAfterTest: void;
   cancelSignupInvitationAfterTest: void;
@@ -30,50 +27,58 @@ type AuthFixtures = {
   cloudAccountsEnabled: void;
 };
 
-export const test = base.extend<AuthFixtures>({
-  // A separate context and teardown budget restore the shared account even after a test timeout.
-  restoreResetPassword: [
-    async ({ browser, baseURL, resetPwdAccountLock, mailboxAccess }, use) => {
-      const baseline = process.env.RESET_PWD_PASSWORD;
-      if (!baseline) throw new Error('RESET_PWD_PASSWORD must be set — see .env.example');
-      await use(baseline);
+type AuthWorkerFixtures = {
+  adminStorageState: Awaited<ReturnType<BrowserContext['storageState']>>;
+};
 
-      const context = await browser.newContext({ baseURL });
-      try {
-        const page = await context.newPage();
-        const login = new LoginPage(page);
-        const reset = new ResetPasswordPage(page);
-        const email = mailboxAddress(MailinatorInbox.RESET_PWD);
+export const test = base.extend<AuthFixtures, AuthWorkerFixtures>({
+  adminStorageState: [
+    async ({ browser }, use) => {
+      const context = await browser.newContext({
+        baseURL: process.env.BASE_URL || 'https://home.cloudcasa.io',
+      });
+      const page = await context.newPage();
+      const login = new LoginPage(page);
+
+      const signIn = async (): Promise<void> => {
         await login.goto();
-        await login.clickForgotPassword();
-        await login.emailInput.fill(email);
-        const requestedAt = await resetInbox(email);
-        await login.signInButton.click();
-        await login.resetSuccessMessage.shouldBeVisible();
-        await reset.openResetLink(await getPasswordResetLink(requestedAt));
-        await reset.setNewPassword(baseline);
-        await reset.successMessage.shouldBeVisible();
-      } finally {
-        await context.close();
+        const dashboardData = page.waitForResponse(
+          response => response.url().includes(CcApiRoutes.DASHBOARD),
+          { timeout: LOGIN_REDIRECT_TIMEOUT },
+        );
+        await login.login(process.env.CC_EMAIL ?? '', process.env.CC_PASSWORD ?? '');
+        await Promise.all([
+          page.waitForURL('**/dashboard**', { timeout: LOGIN_REDIRECT_TIMEOUT }),
+          dashboardData,
+        ]);
+      };
+
+      try {
+        await signIn();
+      } catch {
+        await signIn();
       }
+      await use(await context.storageState());
+      await context.close();
     },
-    { timeout: EMAIL_TEST_TIMEOUT },
+    { scope: 'worker' },
   ],
+
+  storageState: async ({ adminStorageState }, use) => {
+    await use(adminStorageState);
+  },
+
   loggedInPage: async ({ page, loginPage }, use) => {
-    const signIn = async (): Promise<void> => {
-      await loginPage.goto();
+    const dashboardData = page.waitForResponse(
+      response => response.url().includes(CcApiRoutes.DASHBOARD),
+      { timeout: LOGIN_REDIRECT_TIMEOUT },
+    );
+    await page.goto('/dashboard', { waitUntil: 'load' });
+    if (/\/login(?:\?|$)/.test(page.url())) {
       await loginPage.login(process.env.CC_EMAIL ?? '', process.env.CC_PASSWORD ?? '');
       await page.waitForURL('**/dashboard**', { timeout: LOGIN_REDIRECT_TIMEOUT });
-    };
-
-    // Staging drops a sign-in back onto the IdP form often enough that nothing but a second
-    // attempt recovers it: the chain ends on the login form, so waiting longer cannot help.
-    try {
-      await signIn();
-    } catch {
-      await signIn();
     }
-
+    await dashboardData;
     await use(page);
   },
 

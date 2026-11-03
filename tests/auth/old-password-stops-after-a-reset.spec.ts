@@ -1,6 +1,6 @@
 // spec: specs/auth/auth.md (TC-AUTH-005)
 
-import { test, expect } from '@fixtures/auth';
+import { test, expect } from '@fixtures/base';
 import { fakeUser } from '@data/fake';
 import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';

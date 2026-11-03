@@ -2,7 +2,7 @@
 // seed: seed.spec.ts
 
 import { faker } from '@faker-js/faker';
-import { test } from '@fixtures/auth';
+import { test } from '@fixtures/base';
 import { getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { PASSWORD_RESET_FLOW_TEST_TIMEOUT } from '@data/timeouts';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';

@@ -9,7 +9,7 @@ export default defineConfig({
     timeout: 5000,
   },
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   // Kept low in CI: the workers share one CloudCasa account (see ci/README.md).
   workers: process.env.CI ? 2 : undefined,
   // In CI the raw results are POSTed to the Allure Docker Service (see ci/README.md).
@@ -25,7 +25,7 @@ export default defineConfig({
     video: 'retain-on-failure',
     headless: !!process.env.CI,
     launchOptions: {
-      slowMo: Number(process.env.SLOW_MO) || 0,
+      slowMo: process.env.CI ? 0 : Number(process.env.SLOW_MO) || 0,
     },
   },
   projects: [

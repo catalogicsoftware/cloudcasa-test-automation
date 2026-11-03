@@ -21,8 +21,10 @@ import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
 import { CcApiRoutes } from '@data/api-routes';
-import { checkMailboxAccess } from '@utils/mailinator';
+import { checkMailboxAccess, getPasswordResetLink, resetInbox } from '@utils/mailinator';
 import { acquireLock } from '@utils/mailinator-lock';
+import { EMAIL_TEST_TIMEOUT } from '@data/timeouts';
+import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 type Pages = {
   loginPage: LoginPage;
@@ -47,6 +49,7 @@ type Pages = {
   invitedUser: InvitedUser;
   registeredUser: InvitedUser;
   ccApi: CcApi;
+  restoreResetPassword: string;
   resetPwdAccountLock: void;
   helpModalAccountLock: void;
   organizationNameLock: void;
@@ -164,6 +167,35 @@ export const test = base.extend<Pages, WorkerFixtures>({
     await use();
     release();
   },
+
+  // A separate context and teardown budget restore the shared account even after a test timeout.
+  restoreResetPassword: [
+    async ({ browser, baseURL, resetPwdAccountLock, mailboxAccess }, use) => {
+      const baseline = process.env.RESET_PWD_PASSWORD;
+      if (!baseline) throw new Error('RESET_PWD_PASSWORD must be set — see .env.example');
+      await use(baseline);
+
+      const context = await browser.newContext({ baseURL });
+      try {
+        const page = await context.newPage();
+        const login = new LoginPage(page);
+        const reset = new ResetPasswordPage(page);
+        const email = mailboxAddress(MailinatorInbox.RESET_PWD);
+        await login.goto();
+        await login.clickForgotPassword();
+        await login.emailInput.fill(email);
+        const requestedAt = await resetInbox(email);
+        await login.signInButton.click();
+        await login.resetSuccessMessage.shouldBeVisible();
+        await reset.openResetLink(await getPasswordResetLink(requestedAt));
+        await reset.setNewPassword(baseline);
+        await reset.successMessage.shouldBeVisible();
+      } finally {
+        await context.close();
+      }
+    },
+    { timeout: EMAIL_TEST_TIMEOUT },
+  ],
 
   // The help modal shows only while the shared account has no cluster and no "do not show again" flag, so the tests
   // that need it and the tests that break that state take turns; request it before loggedInPage.

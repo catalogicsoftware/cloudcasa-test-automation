@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script {
                     // On the node and before the build: if a stage dies early, post must find nothing to publish.
-                    sh 'rm -rf allure-results playwright-report test-results'
+                    sh 'rm -rf allure-results playwright-report test-results .mailinator-locks .storage-locks'
                     docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')
                 }
             }

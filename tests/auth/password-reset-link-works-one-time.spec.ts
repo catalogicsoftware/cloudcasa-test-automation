@@ -2,7 +2,7 @@
 // seed: seed.spec.ts
 
 import { faker } from '@faker-js/faker';
-import { test, expect } from '@fixtures/auth';
+import { test, expect } from '@fixtures/base';
 import { LoginPage } from '@page-object-model/pages/auth/login.page';
 import { ResetPasswordPage } from '@page-object-model/pages/auth/reset-password.page';
 import { DashboardPage } from '@page-object-model/pages/dashboard.page';
