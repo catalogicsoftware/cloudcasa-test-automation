@@ -30,7 +30,7 @@ const { values: args } = parseArgs({
     analysis: { type: 'string' },
     repo: {
       type: 'string',
-      default: process.env.GITHUB_REPO || 'catalogicsoftware/claudcasa-test-automation',
+      default: process.env.GITHUB_REPO || 'catalogicsoftware/cloudcasa-test-automation',
     },
     'list-runs': { type: 'boolean', default: false },
     'digest-only': { type: 'boolean', default: false },
