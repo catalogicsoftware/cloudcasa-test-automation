@@ -70,20 +70,20 @@ need the Folder Properties plugin **and** a `withFolderProperties { }` wrapper i
 the pipeline, so they are not a drop-in alternative here — on a controller shared
 with jobs that use these names, prefix them instead.
 
-| Variable             | What it is                                                              | Value in use                               |
-| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
-| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                           | `http://cc-allure.ad.catalogic.us:5050`    |
-| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history         | `cloudcasa-e2e`                            |
-| `NEXUS_URL`          | Nexus root, no trailing slash                                           | `https://cc-nexus.ad.catalogic.us`         |
-| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                         | `cloudcasa-test-reports`                   |
-| `TESTMO_URL`         | Testmo Cloud tenant                                                     | not provisioned yet                        |
-| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL                       | not provisioned yet                        |
-| `TEAMS_NOTIFY`       | `true` enables the Teams card; anything else switches it off            | `true`                                     |
-| `FOUNDRY_ENDPOINT`   | Microsoft Foundry resource URL for the run analysis; unset = no AI text | `https://<resource>.services.ai.azure.com` |
-| `FOUNDRY_DEPLOYMENT` | Foundry model deployment name                                           | `gpt-5.4-mini`                             |
-| `GITHUB_ISSUES`      | `true` files flaky tests as GitHub issues                               | not enabled yet                            |
-| `GITHUB_REPO`        | Repo the issues go to (default: this one)                               | —                                          |
-| `ISSUE_CATEGORIES`   | Problem categories filed as issues (default: `flaky`)                   | —                                          |
+| Variable             | What it is                                                                     | Value in use                               |
+| -------------------- | ------------------------------------------------------------------------------ | ------------------------------------------ |
+| `ALLURE_URL`         | Allure Docker Service root, no trailing slash                                  | `http://cc-allure.ad.catalogic.us:5050`    |
+| `ALLURE_PROJECT_ID`  | Allure project — must stay stable, it carries the trend history                | `cloudcasa-e2e`                            |
+| `NEXUS_URL`          | Nexus root, no trailing slash                                                  | `https://cc-nexus.ad.catalogic.us`         |
+| `NEXUS_REPORTS_REPO` | `raw (hosted)` repo the report tree is PUT into                                | `cloudcasa-test-reports`                   |
+| `TESTMO_URL`         | Testmo Cloud tenant                                                            | not provisioned yet                        |
+| `TESTMO_PROJECT_ID`  | numeric Testmo project id, from the project's URL                              | not provisioned yet                        |
+| `TEAMS_NOTIFY`       | `true` enables the Teams card; anything else switches it off                   | `true`                                     |
+| `FOUNDRY_ENDPOINT`   | Microsoft Foundry resource URL for the run analysis; unset = no AI text        | `https://<resource>.services.ai.azure.com` |
+| `FOUNDRY_DEPLOYMENT` | Foundry model deployment name                                                  | `gpt-5.4-mini`                             |
+| `GITHUB_ISSUES`      | `true` files flaky tests as GitHub issues                                      | not enabled yet                            |
+| `GITHUB_REPO`        | Repo the issues go to (default: `catalogicsoftware/cloudcasa-test-automation`) | —                                          |
+| `ISSUE_CATEGORIES`   | Problem categories filed as issues (default: `flaky`)                          | —                                          |
 
 The Testmo tenant and project do not exist yet, so those two stay unset and that
 step stays off; `TESTMO_URL` takes the form `https://<tenant>.testmo.net`.

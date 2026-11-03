@@ -39,7 +39,11 @@ node ci/analysis/analyze.mjs --post             # also POST the card to TEAMS_WE
 - `card.mjs` — Adaptive Card 1.4 (TextBlock / Container / FactSet only) plus a terminal rendering.
 - `analyze.mjs` — glues it together; a failed model call still produces the card, without analysis.
 
+The digest includes step statuses and the last failure path before teardown. Earlier caught waits do not replace a later journey failure. The prompt requires matching failure evidence for every grouped test and separates observations from possible causes. Run the digest regression checks with `node --test ci/analysis/digest.test.mjs`.
+
 ## GitHub issues
+
+The default repository is `catalogicsoftware/cloudcasa-test-automation`. `GITHUB_REPO` or `--repo` overrides it.
 
 Every failed, broken or flaky test ends up in exactly one problem, and every problem is on the
 Teams card. Only problems whose category is in `--issue-categories` (`$ISSUE_CATEGORIES`, default

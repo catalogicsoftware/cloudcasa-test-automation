@@ -17,6 +17,7 @@ type AuthFixtures = {
   createdClusters: string[];
   createdHooks: string[];
   originalOrganizationName: string;
+  originalYamlCatalogForBrowse: boolean;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -174,6 +175,15 @@ export const test = base.extend<AuthFixtures>({
       const { display_name: originalName } = await ccApi.orgs.current();
       await use(originalName);
       await ccApi.orgs.setDisplayName(originalName);
+    },
+    { timeout: ORGANIZATION_NAME_RESTORE_TIMEOUT },
+  ],
+  // The preferences Save writes the whole organization, name included, so it takes turns with the rename too.
+  originalYamlCatalogForBrowse: [
+    async ({ organizationNameLock, ccApi }, use) => {
+      const { enable_yaml_catalog_for_browse: originalValue } = await ccApi.orgs.current();
+      await use(originalValue);
+      await ccApi.orgs.setYamlCatalogForBrowse(originalValue);
     },
     { timeout: ORGANIZATION_NAME_RESTORE_TIMEOUT },
   ],

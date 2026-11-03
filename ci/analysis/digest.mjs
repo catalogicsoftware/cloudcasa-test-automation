@@ -47,11 +47,14 @@ export function splitRuns(results, gapMinutes = 30) {
 }
 
 function failedStepPath(steps, trail = []) {
-  for (const step of steps ?? []) {
-    if (NOISE_STEPS.has(step.name)) continue;
-    if (step.status === 'failed' || step.status === 'broken') {
-      return failedStepPath(step.steps, [...trail, step.name]);
-    }
+  const failures = (steps ?? []).filter(s => s.status === 'failed' || s.status === 'broken');
+  // A caught optional wait can fail before the terminal error; teardown errors must not replace that error.
+  const primary = failures.filter(s => s.name !== 'After Hooks').reverse();
+  const teardown = failures.filter(s => s.name === 'After Hooks').reverse();
+  for (const step of [...primary, ...teardown]) {
+    const nextTrail = NOISE_STEPS.has(step.name) ? trail : [...trail, step.name];
+    const found = failedStepPath(step.steps, nextTrail);
+    if (found.length) return found;
   }
   return trail;
 }
@@ -125,7 +128,9 @@ function testEntry(attempts, dir, cases) {
   // A flaky test is explained by the attempt that failed, not by the one that passed.
   const failing = entry.flaky ? attempts.findLast(a => a.status !== 'passed') : final;
   const details = failing.statusDetails ?? {};
-  entry.steps = (failing.steps ?? []).map(s => s.name).filter(n => !NOISE_STEPS.has(n));
+  entry.steps = (failing.steps ?? [])
+    .filter(s => !NOISE_STEPS.has(s.name))
+    .map(s => ({ name: s.name, status: s.status }));
   entry.failedStep = failedStepPath(failing.steps).join(' > ') || undefined;
   entry.message = details.message ? clip(stripAnsi(details.message), 800) : undefined;
   if (status !== 'skipped') {
