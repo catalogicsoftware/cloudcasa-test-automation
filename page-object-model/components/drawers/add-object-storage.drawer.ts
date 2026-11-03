@@ -1,4 +1,4 @@
-import { expect, Page, Response, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 import { Button } from '@page-factory/button';
 import { Checkbox } from '@page-factory/checkbox';
 import { Container } from '@page-factory/container';
@@ -77,9 +77,7 @@ export class AddObjectStorageWizard extends BaseDrawer {
       page,
       // Same formly convention as every other required field: a sibling .invalid-feedback
       // holding a <formly-validation-message>, rendered only while the field is invalid.
-      locator: this.scoped(
-        '.form-group:has(input[id*="s3provider.endpoint"]) .invalid-feedback',
-      ),
+      locator: this.scoped('.form-group:has(input[id*="s3provider.endpoint"]) .invalid-feedback'),
       name: 'Endpoint URL validation message',
     });
     this.region = new Input({
@@ -208,8 +206,11 @@ export class AddObjectStorageWizard extends BaseDrawer {
 
   /** Region is only filled when the case provides one — see S3StorageTarget.region. */
   private async fillS3Fields(storage: S3StorageTarget): Promise<void> {
-    await this.bucketName.fill(storage.bucket);
-    await this.endpointUrl.fill(storage.endpoint);
+    // Endpoint changes can replace the Region widget and re-render the provider form.
+    // Fill values that must survive that swap only after the endpoint has settled.
+    await this.endpointUrl.fill(storage.endpoint, { validateValue: true });
+    await expect(this.regionSelect.getLocator().or(this.region.getLocator()).first()).toBeVisible();
+    await this.bucketName.fill(storage.bucket, { validateValue: true });
     await this.accessKey.fill(storage.accessKey, { secret: true });
     await this.secretKey.fill(storage.secretKey, { secret: true });
     if (storage.region) {
@@ -309,9 +310,11 @@ export class AddObjectStorageWizard extends BaseDrawer {
       await this.storageName.fill(name);
       await this.submit.shouldBeEnabled();
 
-      const response = this.waitForCreateResponse();
-      await this.submit.click();
-      await assertResponseOk(await response, `Create storage "${name}"`);
+      const response = await this.submit.clickAndWaitForResponse(this.isObjectStoresUrl, {
+        method: 'POST',
+        timeout: BACKEND_PROBE_TIMEOUT,
+      });
+      await assertResponseOk(response, `Create storage "${name}"`);
 
       await expect(this.page.locator(this.scoped('button:has-text("Next")'))).toHaveCount(0);
     });
@@ -327,18 +330,13 @@ export class AddObjectStorageWizard extends BaseDrawer {
       await this.storageName.fill(name);
       await this.submit.shouldBeEnabled();
 
-      const response = this.waitForCreateResponse();
-      await this.submit.click();
-      return (await response).status();
+      const response = await this.submit.clickAndWaitForResponse(this.isObjectStoresUrl, {
+        method: 'POST',
+        timeout: BACKEND_PROBE_TIMEOUT,
+        assertOk: false,
+      });
+      return response.status();
     });
-  }
-
-  /** Registered before the click; own wait since a rejection here must not assert 2xx. */
-  private waitForCreateResponse(): Promise<Response> {
-    return this.page.waitForResponse(
-      result => this.isObjectStoresUrl(result.url()) && result.request().method() === 'POST',
-      { timeout: BACKEND_PROBE_TIMEOUT },
-    );
   }
 
   private readonly isObjectStoresUrl = (url: string): boolean =>

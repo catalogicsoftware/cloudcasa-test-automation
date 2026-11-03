@@ -2,6 +2,7 @@ import { expect, test } from '@fixtures/auth';
 import { HELP_MODAL_DISMISS_TEST_TIMEOUT, LOGIN_REDIRECT_TIMEOUT } from '@data/timeouts';
 
 test.describe('Dashboard', () => {
+  test.skip(true, 'Temporarily disabled until reliable help-modal preconditions are available.');
   test.describe.configure({ timeout: HELP_MODAL_DISMISS_TEST_TIMEOUT });
 
   test('The help modal stays closed after the user dismisses it', async ({

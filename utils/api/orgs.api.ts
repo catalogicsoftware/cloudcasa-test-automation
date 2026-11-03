@@ -31,4 +31,19 @@ export class OrgsApi extends BaseApi {
     });
     await assertResponseOk(response, `PATCH orgs/${org._id}`);
   }
+
+  /** PATCH merges uiprefs instead of dropping a key, so this PUTs the whole organization like the Settings page does. */
+  async enableCloudAccounts(): Promise<void> {
+    const org = await this.current();
+    const { disabled_cloudaccounts: disabled, ...uiprefs } = org.uiprefs;
+    if (disabled === undefined) {
+      return;
+    }
+    const fields = Object.fromEntries(Object.entries(org).filter(([key]) => !key.startsWith('_')));
+    const response = await this.request.put(this.url(`${CcApiRoutes.ORGS}/${org._id}`), {
+      headers: { ...this.headers, 'If-Match': org._etag },
+      data: { ...fields, uiprefs },
+    });
+    await assertResponseOk(response, `PUT orgs/${org._id}`);
+  }
 }

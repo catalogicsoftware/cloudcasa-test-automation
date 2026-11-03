@@ -4,10 +4,11 @@
  * together rather than repeating the literal at each site.
  */
 const TEST_RESOURCE_PREFIX = 'aqa-';
+let sequence = 0;
 
-/** The timestamp keeps parallel workers and CI retries from ever reusing a name. */
+/** Time, process and sequence keep parallel workers, same-tick calls and CI retries unique. */
 export const testResourceName = (label: string): string =>
-  `${TEST_RESOURCE_PREFIX}${slug(label)}-${Date.now()}`;
+  `${TEST_RESOURCE_PREFIX}${slug(label)}-${Date.now()}-${process.pid}-${sequence++}`;
 
 export const isTestResourceName = (name: string): boolean => name.startsWith(TEST_RESOURCE_PREFIX);
 

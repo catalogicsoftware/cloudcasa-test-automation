@@ -1,8 +1,10 @@
 import { Locator, Page, test } from '@playwright/test';
 import { Button } from '@page-factory/button';
+import { CcApiRoutes } from '@data/api-routes';
 import { AddPolicyDialog, DIALOG } from './add-policy.dialog';
 
 const SCHEDULES_HEADING = `${DIALOG} h5:text-is("Schedules *")`;
+const POLICIES_PATH = `/${CcApiRoutes.POLICIES}/`;
 
 /**
  * Same `app-policy` dialog as `AddPolicyDialog`, in edit mode: the composer above is only for
@@ -41,7 +43,10 @@ export class EditPolicyDialog extends AddPolicyDialog {
 
   async save(): Promise<void> {
     await test.step('Save the policy', async () => {
-      await this.savePolicy.click();
+      await this.savePolicy.clickAndWaitForResponse(
+        url => new URL(url).pathname.startsWith(POLICIES_PATH),
+        { method: 'PUT' },
+      );
     });
   }
 }

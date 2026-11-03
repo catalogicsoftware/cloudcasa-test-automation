@@ -1,5 +1,10 @@
 import { expect, test } from '@fixtures/auth';
-import { BUCKET_ERROR, CONNECTIVITY_ERROR, CREDENTIALS_ERROR, objectStorageTargets } from '@data/storage';
+import {
+  BUCKET_ERROR,
+  CONNECTIVITY_ERROR,
+  CREDENTIALS_ERROR,
+  objectStorageTargets,
+} from '@data/storage';
 import { testResourceName } from '@utils/resource-names';
 import { STORAGE_TEST_TIMEOUT } from '@data/timeouts';
 import type { S3TargetCase } from '../../types/data/storage';
@@ -41,6 +46,7 @@ test.describe('Backup Storage', () => {
 
     // Go to the step Summary and save
     await wizard.goToSummaryStep();
+    await wizard.shouldSummarizeTarget({ ...target, bucket: unknownBucket });
     const name = testResourceName('unknown-bucket');
     const status = await wizard.saveExpectingRejection(name);
     expect(status, 'the backend must refuse an unknown bucket').toBe(422);

@@ -19,10 +19,14 @@ export class Radio extends Component {
     return value ? `"${this.componentName}" with value "${value}"` : `"${this.componentName}"`;
   }
 
-  /** Forced because the styled label covers the input; check() still verifies the state (see README.md). */
+  /** The styled label owns the working click handler; the hidden input itself ignores forced clicks. */
   async select(props: RadioProps = {}): Promise<void> {
     await test.step(`Select the ${this.typeOf} ${this.named(props.value)}`, async () => {
-      await this.radio(props).check({ force: true });
+      const radio = this.radio(props);
+      const id = await radio.getAttribute('id');
+      if (!id) throw new Error(`${this.named(props.value)} has no id for its label`);
+      await this.page.locator(`label[for="${id}"]`).click();
+      await expect(radio).toBeChecked();
     });
   }
 

@@ -3,7 +3,7 @@ import { Button } from '@page-factory/button';
 import { Container } from '@page-factory/container';
 import { Radio } from '@page-factory/radio';
 import { Title } from '@page-factory/title';
-import { HELP_MODAL_APPEAR_TIMEOUT, HELP_MODAL_REAPPEAR_TIMEOUT } from '@data/timeouts';
+import { HELP_MODAL_REAPPEAR_TIMEOUT } from '@data/timeouts';
 
 export class UserHelpModal {
   readonly container: Container;
@@ -47,7 +47,7 @@ export class UserHelpModal {
 
   // The app opens the modal only while the account has no cluster or cloud account, which parallel tests change.
   async closeModal(): Promise<void> {
-    await this.closeIfShownWithin(HELP_MODAL_APPEAR_TIMEOUT);
+    await this.closeIfShownWithin(HELP_MODAL_REAPPEAR_TIMEOUT);
   }
 
   // The modal can reappear after navigation unless the user disables it, but right after

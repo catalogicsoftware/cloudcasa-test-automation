@@ -16,7 +16,7 @@ Two stages on one node (`agent any`, so they share a workspace). **Build image**
 `docker.build(env.TEST_IMAGE, '-f ci/Dockerfile .')` from the repo root; **Run tests**
 then does `docker.image(env.TEST_IMAGE).inside('--ipc=host') { ... }` and runs its `sh`
 steps inside that container. `CI=true` activates the CI branch of
-`playwright.config.ts` (headless, `retries: 2`, `workers: 2`).
+`playwright.config.ts` (headless, `retries: 1`, `workers: 2`, no `slowMo`).
 
 The image is handed over by tag, not by object: `TEST_IMAGE` is a pipeline-level
 `environment` entry because a `docker.build()` return value cannot cross a stage

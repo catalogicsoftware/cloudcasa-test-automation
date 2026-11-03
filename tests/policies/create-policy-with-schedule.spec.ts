@@ -4,6 +4,7 @@ import { POLICY_TEST_TIMEOUT } from '@data/timeouts';
 import { testResourceName } from '@utils/resource-names';
 
 test.describe('Policies', () => {
+  test.skip(true, 'Temporarily disabled until a dedicated Free-plan account is available.');
   test.describe.configure({ timeout: POLICY_TEST_TIMEOUT });
 
   for (const schedule of scheduleCases()) {

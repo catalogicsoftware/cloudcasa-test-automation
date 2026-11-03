@@ -17,7 +17,7 @@ test.describe('Forgot Password Flow', () => {
     resetPasswordPage,
     dashboardPage,
     mailboxAccess,
-    resetPwdAccountLock,
+    restoreResetPassword,
   }) => {
     const newPassword = `${faker.internet.password({ length: 16, memorable: false })}1!Aa`;
 

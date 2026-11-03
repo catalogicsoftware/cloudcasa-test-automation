@@ -86,10 +86,26 @@ export class PoliciesConfigurationPage extends BasePage {
         name,
         'Schedules',
         new RegExp(expectedFrequency(schedule), 'i'),
+        POLICY_LIST_RELOAD_TIMEOUT,
       );
-      await this.policiesTable.shouldHaveCellValue(name, 'Schedules', expectedRule(schedule));
-      await this.policiesTable.shouldHaveCellValue(name, 'Schedules', expectedRetention(schedule));
-      await this.policiesTable.shouldHaveCellValue(name, 'Timezone', timezone);
+      await this.policiesTable.shouldHaveCellValue(
+        name,
+        'Schedules',
+        expectedRule(schedule),
+        POLICY_LIST_RELOAD_TIMEOUT,
+      );
+      await this.policiesTable.shouldHaveCellValue(
+        name,
+        'Schedules',
+        expectedRetention(schedule),
+        POLICY_LIST_RELOAD_TIMEOUT,
+      );
+      await this.policiesTable.shouldHaveCellValue(
+        name,
+        'Timezone',
+        timezone,
+        POLICY_LIST_RELOAD_TIMEOUT,
+      );
     });
   }
 

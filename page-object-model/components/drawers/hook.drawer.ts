@@ -188,6 +188,9 @@ export class HookDrawer extends BaseDrawer {
 
   /** Add and Clone both POST a new hook. */
   async saveNewHook(): Promise<void> {
+    // Clone fills the last required field immediately before Save; blur commits Angular's form value.
+    await this.name.getLocator().blur();
+    await this.submit.shouldBeEnabled();
     await this.submit.clickAndWaitForResponse(url => new URL(url).pathname === HOOKS_PATH, {
       method: 'POST',
     });

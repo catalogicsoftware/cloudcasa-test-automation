@@ -2,9 +2,13 @@
 // spec/clusters/backups-restores.md (TC-BAK-005)
 
 import { expect, test } from '@fixtures/auth';
+import { CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Dashboard', () => {
+  test.describe.configure({ timeout: CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT });
+
   test('Each shortcut opens its target', async ({
+    cloudAccountsLock,
     loggedInPage,
     dashboardPage,
     clustersPage,

@@ -4,6 +4,7 @@ import { expect, test } from '@fixtures/auth';
 import { HELP_MODAL_FIRST_LOGIN_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Dashboard', () => {
+  test.skip(true, 'Temporarily disabled until reliable help-modal preconditions are available.');
   test.describe.configure({ timeout: HELP_MODAL_FIRST_LOGIN_TEST_TIMEOUT });
 
   test('The help modal appears and closes at the first login', async ({

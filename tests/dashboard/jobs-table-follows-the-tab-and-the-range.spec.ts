@@ -2,9 +2,13 @@
 
 import { CcApiRoutes } from '@data/api-routes';
 import { expect, test } from '@fixtures/auth';
+import { CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT } from '@data/timeouts';
 
 test.describe('Dashboard', () => {
+  test.describe.configure({ timeout: CLOUD_ACCOUNTS_CHECK_TEST_TIMEOUT });
+
   test('The jobs table changes with the tab and with the time range', async ({
+    cloudAccountsLock,
     loggedInPage,
     dashboardPage,
   }) => {
