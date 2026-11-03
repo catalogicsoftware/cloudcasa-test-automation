@@ -16,6 +16,8 @@ test.describe('Configuration', () => {
   test.describe.configure({ timeout: DEFAULT_STORAGE_TEST_TIMEOUT });
 
   test('The default storage can be set and cleared', async ({
+    // The preferences Save and the PUT in clearDefaultStorage() write the whole organization, name included.
+    organizationNameLock,
     loggedInPage,
     dashboardPage,
     configurationPage,
