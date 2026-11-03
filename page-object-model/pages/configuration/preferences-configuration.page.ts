@@ -3,6 +3,7 @@ import { BasePage } from '../base.page';
 import { Button } from '@page-factory/button';
 import { Checkbox } from '@page-factory/checkbox';
 import { Container } from '@page-factory/container';
+import { Dropdown } from '@page-factory/dropdown';
 import { Input } from '@page-factory/input';
 import { CcApiRoutes } from '@data/api-routes';
 import { assertResponseOk } from '@utils/generic';
@@ -31,6 +32,13 @@ export class PreferencesConfigurationPage extends BasePage {
     locator: 'app-preferences label[for*="toggle_uiprefs.disabled_cloudaccounts"]',
     name: 'Enable cloud accounts',
   });
+  readonly defaultStorage = new Dropdown({
+    page: this.page,
+    // The select has no label: it is the first visible one after its heading, the Provider/Region selects in between stay hidden.
+    locator:
+      'app-preferences formly-field:has(h4:text-is("Default storage")) ~ formly-field button.mat-menu-trigger:visible >> nth=0',
+    name: 'Default storage',
+  });
   readonly saveButton = new Button({
     page: this.page,
     locator: 'app-preferences button[type="submit"]',
@@ -48,6 +56,16 @@ export class PreferencesConfigurationPage extends BasePage {
       await this.saveButton.click();
       await assertResponseOk(await response, 'Save settings');
     });
+  }
+
+  /** A single-select menu closes itself on a pick, so there is no menu left to close. */
+  async selectDefaultStorage(name: string, namePattern: RegExp): Promise<void> {
+    await this.defaultStorage.selectByText(namePattern, { search: name, keepOpen: true });
+  }
+
+  /** The clear control is the "Remove selected" item at the top of the menu. */
+  async clearDefaultStorage(): Promise<void> {
+    await this.defaultStorage.selectByText('Remove selected', { keepOpen: true });
   }
 
   private waitForSaveResponse(): Promise<Response> {

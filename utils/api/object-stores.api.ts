@@ -2,9 +2,36 @@ import { CcApiRoutes } from '@data/api-routes';
 import { isTestResourceName } from '@utils/resource-names';
 import { assertResponseOk } from '@utils/generic';
 import { BaseApi } from './base.api';
-import type { ObjectStore, ObjectStoresListResponse } from '../../types/api/object-stores';
+import type {
+  CreateObjectStoreRequest,
+  ObjectStore,
+  ObjectStoresListResponse,
+} from '../../types/api/object-stores';
+import type { S3StorageTarget } from '../../types/data/storage';
 
 export class ObjectStoresApi extends BaseApi {
+  /** Same body as the wizard sends; the region is not sent, so use a target without one. */
+  async create(name: string, target: S3StorageTarget): Promise<ObjectStore> {
+    const data: CreateObjectStoreRequest = {
+      name,
+      private: false,
+      provider_type: 'aws',
+      skip_tls_certificate_validation: false,
+      bucket_name: target.bucket,
+      s3provider: {
+        disable_default_integrity_checks: false,
+        endpoint: target.endpoint,
+        credentials: { access_key: target.accessKey, secret_key: target.secretKey },
+      },
+    };
+    const response = await this.request.post(this.url(CcApiRoutes.OBJECT_STORES), {
+      headers: this.headers,
+      data,
+    });
+    await assertResponseOk(response, 'POST objectstores');
+    return (await response.json()) as ObjectStore;
+  }
+
   private async find(where: Record<string, string>): Promise<ObjectStore[]> {
     const response = await this.request.get(this.url(CcApiRoutes.OBJECT_STORES), {
       headers: this.headers,

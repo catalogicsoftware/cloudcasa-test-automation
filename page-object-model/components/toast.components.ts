@@ -8,9 +8,16 @@ import { BACKEND_PROBE_TIMEOUT } from '@data/timeouts';
  */
 export class Toast {
   readonly notifications: Container;
+  readonly errorIcons: Container;
 
   constructor(protected readonly page: Page) {
     this.notifications = new Container({ page, locator: 'app-toast', name: 'Notifications' });
+    // Success and error toasts share their text layout; only the icon tells them apart.
+    this.errorIcons = new Container({
+      page,
+      locator: 'app-toast .cs-toast__icon.text-danger',
+      name: 'Error notification icons',
+    });
   }
 
   /**

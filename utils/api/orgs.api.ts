@@ -23,6 +23,21 @@ export class OrgsApi extends BaseApi {
     await this.patch({ enable_yaml_catalog_for_browse: enabled });
   }
 
+  /** A storage set as the default refuses deletion with 422. This is a no-op when no default is set. */
+  async clearDefaultStorage(): Promise<void> {
+    const org = await this.current();
+    if (!org.backup_provider?.user_objectstore) {
+      return;
+    }
+    // PATCH merges the nested object, so only a full PUT drops the key, like the Settings page does.
+    const data = Object.fromEntries(Object.entries(org).filter(([field]) => !field.startsWith('_')));
+    const response = await this.request.put(this.url(`${CcApiRoutes.ORGS}/${org._id}`), {
+      headers: { ...this.headers, 'If-Match': org._etag },
+      data: { ...data, backup_provider: {} },
+    });
+    await assertResponseOk(response, `PUT orgs/${org._id}`);
+  }
+
   private async patch(data: Partial<Org>): Promise<void> {
     const org = await this.current();
     const response = await this.request.patch(this.url(`${CcApiRoutes.ORGS}/${org._id}`), {
