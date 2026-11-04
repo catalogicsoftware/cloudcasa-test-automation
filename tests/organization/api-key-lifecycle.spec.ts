@@ -1,6 +1,6 @@
 import { expect, test } from '@fixtures/auth';
 import { API_KEY_ROLE, apiKeyQuotaText, createdOn, maskedApiKey } from '@data/api-keys';
-import { API_KEY_TEST_TIMEOUT } from '@data/timeouts';
+import { API_KEY_LIST_RELOAD_TIMEOUT, API_KEY_TEST_TIMEOUT } from '@data/timeouts';
 import { testResourceName, testResourceNamePattern } from '@utils/resource-names';
 
 test.describe('Organization', () => {
@@ -80,7 +80,7 @@ test.describe('Organization', () => {
     await confirmation.confirm();
 
     // 13. Make sure that the row is not in the table.
-    await apiKeysTable.shouldNotHaveRow(namePattern);
+    await apiKeysTable.shouldNotHaveRow(namePattern, API_KEY_LIST_RELOAD_TIMEOUT);
 
     // 14. Make sure that the quota heading shows one key less.
     await expect(quota.getLocator()).toHaveText(apiKeyQuotaText(quotaBefore));
@@ -89,5 +89,11 @@ test.describe('Organization', () => {
     await apiKeysConfigurationPage.heading.shouldBeVisible();
     await apiKeysTable.shouldNotHaveRow(namePattern);
     await expect(quota.getLocator()).toHaveText(apiKeyQuotaText(quotaBefore));
+
+    // 15. The same request must reject the key after it has been deleted.
+    await test.step('The API rejects the deleted API key', async () => {
+      const revokedKeyStatus = await apiKeysApi.statusWithKey(secret);
+      expect(revokedKeyStatus, 'A deleted API key must no longer authenticate requests').toBe(401);
+    });
   });
 });

@@ -16,6 +16,9 @@ export const CLUSTERS_LIST_RELOAD_TIMEOUT = 30_000;
 /** The hooks list reloads itself the same way once the hook drawer saves. */
 export const HOOK_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The API keys list refreshes asynchronously after a key is removed. */
+export const API_KEY_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** The backups list reloads itself the same way after a full-page reload. */
 export const BACKUPS_LIST_RELOAD_TIMEOUT = 30_000;
 
