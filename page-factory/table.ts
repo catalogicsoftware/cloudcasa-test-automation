@@ -95,11 +95,11 @@ export class Table extends Component {
     });
   }
 
-  async shouldNotHaveRow(text: string | RegExp): Promise<void> {
+  async shouldNotHaveRow(text: string | RegExp, timeout?: number): Promise<void> {
     await test.step(`${this.typeOfUpper} "${this.componentName}" should not have a row containing "${text}"`, async () => {
       await expect(this.getRow(text), {
         message: `The ${this.typeOf} with name "${this.componentName}" and locator "${this.locator}" unexpectedly has a row containing "${text}"`,
-      }).toHaveCount(0);
+      }).toHaveCount(0, { timeout });
     });
   }
 

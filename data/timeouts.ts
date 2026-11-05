@@ -16,6 +16,9 @@ export const CLUSTERS_LIST_RELOAD_TIMEOUT = 30_000;
 /** The hooks list reloads itself the same way once the hook drawer saves. */
 export const HOOK_LIST_RELOAD_TIMEOUT = 30_000;
 
+/** The API keys list refreshes asynchronously after a key is removed. */
+export const API_KEY_LIST_RELOAD_TIMEOUT = 30_000;
+
 /** The backups list reloads itself the same way after a full-page reload. */
 export const BACKUPS_LIST_RELOAD_TIMEOUT = 30_000;
 
@@ -33,6 +36,9 @@ export const POLICY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
 /** Test budget for a hook journey: a sign-in that staging regularly makes twice, a save and a reload. */
 export const HOOK_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
+
+/** Test budget for the API key journey: a sign-in that staging regularly makes twice, the JWT capture reload, a create and a removal. */
+export const API_KEY_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 60_000;
 
 /** Test budget for the cluster journey: registration, the install instructions dialog, and a removal with a confirmation and reload. */
 export const CLUSTER_TEST_TIMEOUT = LOGIN_REDIRECT_TIMEOUT * 2 + 90_000;

@@ -17,6 +17,7 @@ import { PoliciesConfigurationPage } from '@page-object-model/pages/configuratio
 import { PricingPlansPage } from '@page-object-model/pages/configuration/pricing-plans.page';
 import { HooksConfigurationPage } from '@page-object-model/pages/configuration/hooks-configuration.page';
 import { PreferencesConfigurationPage } from '@page-object-model/pages/configuration/preferences-configuration.page';
+import { ApiKeysConfigurationPage } from '@page-object-model/pages/configuration/api-keys-configuration.page';
 import { Toast } from '@page-object-model/components/toast.components';
 import { CcApi } from '@utils/api/cc-api';
 import { apiHeaders, apiOrigin } from '@utils/api/base.api';
@@ -43,6 +44,7 @@ type Pages = {
   pricingPlansPage: PricingPlansPage;
   hooksConfigurationPage: HooksConfigurationPage;
   preferencesConfigurationPage: PreferencesConfigurationPage;
+  apiKeysConfigurationPage: ApiKeysConfigurationPage;
   toast: Toast;
   signUpPage: SignUpPage;
   adminUser: User;
@@ -121,6 +123,9 @@ export const test = base.extend<Pages, WorkerFixtures>({
   },
   preferencesConfigurationPage: async ({ page }, use) => {
     await use(new PreferencesConfigurationPage(page));
+  },
+  apiKeysConfigurationPage: async ({ page }, use) => {
+    await use(new ApiKeysConfigurationPage(page));
   },
   toast: async ({ page }, use) => {
     await use(new Toast(page));

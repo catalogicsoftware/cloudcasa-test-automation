@@ -8,6 +8,7 @@ import {
   ORGANIZATION_NAME_RESTORE_TIMEOUT,
 } from '@data/timeouts';
 import { UsersApi } from '@utils/api/users.api';
+import { ApiKeysApi } from '@utils/api/api-keys.api';
 import { MailinatorInbox, mailboxAddress } from '@data/mailinator-inboxes';
 
 type AuthFixtures = {
@@ -16,6 +17,7 @@ type AuthFixtures = {
   cancelSignupInvitationAfterTest: void;
   adminJwt: string;
   usersApi: UsersApi;
+  apiKeysApi: ApiKeysApi;
   cleanRegisteredUserState: void;
   createdObjectStorages: string[];
   createdPolicies: string[];
@@ -25,6 +27,7 @@ type AuthFixtures = {
   originalOrganizationName: string;
   originalYamlCatalogForBrowse: boolean;
   cloudAccountsEnabled: void;
+  createdApiKeys: string[];
 };
 
 type AuthWorkerFixtures = {
@@ -124,6 +127,10 @@ export const test = base.extend<AuthFixtures, AuthWorkerFixtures>({
 
   usersApi: async ({ request, adminJwt }, use) => {
     await use(new UsersApi(request, adminJwt));
+  },
+
+  apiKeysApi: async ({ request, adminJwt }, use) => {
+    await use(new ApiKeysApi(request, adminJwt));
   },
 
   // Removes the registered user from the organization and cancels any pending
@@ -253,6 +260,24 @@ export const test = base.extend<AuthFixtures, AuthWorkerFixtures>({
     }
     if (failures.length) {
       throw new Error(`Cluster teardown failed for ${failures.join('; ')}`);
+    }
+  },
+
+  // Same contract as createdObjectStorages: a key left behind would count against the organization's API key quota.
+  createdApiKeys: async ({ apiKeysApi }, use) => {
+    const names: string[] = [];
+    await use(names);
+
+    const failures: string[] = [];
+    for (const name of names) {
+      try {
+        await apiKeysApi.deleteByName(name);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+    if (failures.length) {
+      throw new Error(`API key teardown failed for ${failures.join('; ')}`);
     }
   },
 });

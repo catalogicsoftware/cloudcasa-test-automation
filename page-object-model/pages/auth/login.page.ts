@@ -43,9 +43,9 @@ export class LoginPage extends BasePage {
       response.url().includes('/usernamepassword/challenge'),
     );
 
-    await super.goto(url);
+    // Observe both promises immediately so a slow navigation cannot leave a rejected challenge wait unhandled.
+    await Promise.all([super.goto(url), challengeResponse]);
     await this.emailInput.getLocator().waitFor({ state: 'visible' });
-    await challengeResponse;
   }
 
   async login(email: string, password: string) {
